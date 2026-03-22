@@ -81,7 +81,7 @@ exports.register = async (req, res, next) => {
           <p style="color: #666;">This OTP is valid for <strong>10 minutes</strong>. Please do not share it with anyone.</p>
           <br/>
           <p style="font-size: 12px; color: #aaa; text-align: center;">If you did not request this, please ignore this email.</p>
-          <p style="font-size: 12px; color: #aaa; text-align: center;">&copy; ${new Date().getFullYear()} MockTale</p>
+          <p style="font-size: 12px; color: #aaa; text-align: center;">&copy; ${new Date().getFullYear()} PlanPrep4u</p>
         </div>
       </div>
     `,
@@ -248,7 +248,7 @@ exports.forgotPassword = async (req, res, next) => {
           <p style="color: #666;">This OTP is valid for <strong>10 minutes</strong>. Please do not share it with anyone.</p>
           <br/>
           <p style="font-size: 12px; color: #aaa; text-align: center;">If you did not request this, please ignore this email.</p>
-          <p style="font-size: 12px; color: #aaa; text-align: center;">&copy; ${new Date().getFullYear()} MockTale</p>
+          <p style="font-size: 12px; color: #aaa; text-align: center;">&copy; ${new Date().getFullYear()} PlanPrep4u</p>
         </div>
       </div>
     `,
@@ -374,7 +374,7 @@ exports.resendOTP = async (req, res, next) => {
                         <p style="color: #666;">This OTP is valid for <strong>10 minutes</strong>. Please do not share it with anyone.</p>
                         <br/>
                         <p style="font-size: 12px; color: #aaa; text-align: center;">If you did not request this, please ignore this email.</p>
-                        <p style="font-size: 12px; color: #aaa; text-align: center;">&copy; ${new Date().getFullYear()} MockTale</p>
+                        <p style="font-size: 12px; color: #aaa; text-align: center;">&copy; ${new Date().getFullYear()} PlanPrep4u</p>
                     </div>
                 </div>`,
                 cc: null,

@@ -9,7 +9,7 @@ router.get('/:orderId', async (req, res) => {
       keyId, 
       amount, 
       currency = 'INR', 
-      name = 'MockTale', 
+      name = 'PlanPrep4u',
       description, 
       itemName,
       itemPrice,
@@ -33,7 +33,7 @@ router.get('/:orderId', async (req, res) => {
     const checkoutHTML = `<!DOCTYPE html>
 <html>
 <head>
-  <title>MockTale Payment</title>
+  <title>PlanPrep4u Payment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>

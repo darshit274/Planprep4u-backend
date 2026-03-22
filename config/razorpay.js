@@ -9,13 +9,13 @@ const razorpayInstance = new Razorpay({
 // Razorpay configuration
 const razorpayConfig = {
   currency: 'INR',
-  receipt_prefix: 'MOCKTAIL_',
+  receipt_prefix: 'PP4U_',
   webhook_secret: process.env.RAZORPAY_WEBHOOK_SECRET,
   
   // Payment options
   payment_capture: 1, // Auto capture payments
   notes: {
-    app_name: 'Mocktail',
+    app_name: 'PlanPrep4u',
     version: '1.0.0'
   }
 };
