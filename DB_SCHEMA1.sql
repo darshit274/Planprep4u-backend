@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Mar 23, 2026 at 12:55 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Host: 127.0.0.1:3306
+-- Generation Time: Sep 29, 2025 at 11:38 AM
+-- Server version: 8.3.0
+-- PHP Version: 8.1.2-1ubuntu2.22
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `mocktale1`
+-- Database: `mocktale`
 --
 
 -- --------------------------------------------------------
@@ -34,15 +34,12 @@ CREATE TABLE `admins` (
   `password` varchar(255) NOT NULL,
   `role` enum('super_admin','admin','moderator') NOT NULL DEFAULT 'admin',
   `avatar` varchar(255) DEFAULT NULL,
-  `isActive` tinyint(1) NOT NULL DEFAULT 1,
+  `isActive` tinyint(1) NOT NULL DEFAULT '1',
   `lastLogin` datetime DEFAULT NULL,
-  `permissions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`permissions`)),
-  `otp` varchar(255) DEFAULT NULL,
-  `otpExpiry` datetime DEFAULT NULL,
+  `permissions` json DEFAULT NULL,
   `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  `current_session_id` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -51,49 +48,24 @@ CREATE TABLE `admins` (
 --
 
 CREATE TABLE `categories` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
-  `test_series_id` int(11) NOT NULL,
+  `test_series_id` int NOT NULL,
   `name` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
+  `description` text,
   `name_gujarati` varchar(255) DEFAULT NULL COMMENT 'Category name in Gujarati',
-  `description_gujarati` text DEFAULT NULL COMMENT 'Category description in Gujarati',
+  `description_gujarati` text COMMENT 'Category description in Gujarati',
   `node_type` enum('unset','container','question_holder') NOT NULL DEFAULT 'unset' COMMENT 'Type of node: unset (can become either), container (has subcategories), question_holder (has questions)',
-  `parent_category_id` int(11) DEFAULT NULL COMMENT 'Parent category for hierarchical structure',
-  `hierarchy_level` int(11) NOT NULL DEFAULT 0 COMMENT 'Depth level in hierarchy (0 = root, 1 = subcategory, etc.)',
-  `display_order` int(11) NOT NULL DEFAULT 0 COMMENT 'Order for display within same parent',
-  `is_active` tinyint(1) DEFAULT 1,
-  `negative_marking_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether negative marking is enabled for wrong answers in this category',
-  `negative_marks_per_wrong` decimal(5,2) NOT NULL DEFAULT 0.25 COMMENT 'Number of marks to deduct for each wrong answer',
-  `test_duration_minutes` int(11) NOT NULL DEFAULT 60 COMMENT 'Test duration in minutes for this category',
+  `parent_category_id` int DEFAULT NULL COMMENT 'Parent category for hierarchical structure',
+  `hierarchy_level` int NOT NULL DEFAULT '0' COMMENT 'Depth level in hierarchy (0 = root, 1 = subcategory, etc.)',
+  `display_order` int NOT NULL DEFAULT '0' COMMENT 'Order for display within same parent',
+  `is_active` tinyint(1) DEFAULT '1',
+  `negative_marking_enabled` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether negative marking is enabled for wrong answers in this category',
+  `negative_marks_per_wrong` decimal(5,2) NOT NULL DEFAULT '0.25' COMMENT 'Number of marks to deduct for each wrong answer',
+  `test_duration_minutes` int NOT NULL DEFAULT '60' COMMENT 'Test duration in minutes for this category',
   `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  `is_free_in_paid_series` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'If true, this category quiz is free even if the parent test series is paid'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `contact_queries`
---
-
-CREATE TABLE `contact_queries` (
-  `id` int(11) NOT NULL,
-  `full_name` varchar(100) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `mobile_number` varchar(20) NOT NULL,
-  `query_message` text NOT NULL,
-  `status` enum('pending','viewed','solved') NOT NULL DEFAULT 'pending',
-  `admin_notes` text DEFAULT NULL,
-  `viewed_at` datetime DEFAULT NULL,
-  `viewed_by` char(36) DEFAULT NULL,
-  `solved_at` datetime DEFAULT NULL,
-  `solved_by` char(36) DEFAULT NULL,
-  `ip_address` varchar(45) DEFAULT NULL,
-  `user_agent` text DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -102,21 +74,21 @@ CREATE TABLE `contact_queries` (
 --
 
 CREATE TABLE `exam_categories` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
   `name` varchar(100) NOT NULL,
   `name_gujarati` varchar(200) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `description_gujarati` text DEFAULT NULL COMMENT 'Category description in Gujarati',
-  `parent_id` int(11) DEFAULT NULL,
-  `hierarchy_level` int(11) NOT NULL DEFAULT 0,
+  `description` text,
+  `description_gujarati` text COMMENT 'Category description in Gujarati',
+  `parent_id` int DEFAULT NULL,
+  `hierarchy_level` int NOT NULL DEFAULT '0',
   `hierarchy_path` varchar(500) DEFAULT NULL,
-  `display_order` int(11) DEFAULT 0,
-  `is_active` tinyint(1) DEFAULT 1,
+  `display_order` int DEFAULT '0',
+  `is_active` tinyint(1) DEFAULT '1',
   `created_by` varchar(36) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -125,14 +97,14 @@ CREATE TABLE `exam_categories` (
 --
 
 CREATE TABLE `exam_types` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `name` varchar(255) NOT NULL COMMENT 'Exam name (e.g., "Deputy Section Officer", "PSI", "GPSC")',
   `code` varchar(255) NOT NULL COMMENT 'Short code for exam (e.g., "DSO", "PSI", "GPSC")',
-  `description` text DEFAULT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
+  `description` text,
+  `is_active` tinyint(1) DEFAULT '1',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -141,34 +113,34 @@ CREATE TABLE `exam_types` (
 --
 
 CREATE TABLE `hierarchy_categories` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
   `name` varchar(200) NOT NULL,
   `name_gujarati` varchar(400) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `description_gujarati` text DEFAULT NULL,
-  `test_series_id` int(11) NOT NULL,
-  `parent_id` int(11) DEFAULT NULL,
-  `hierarchy_level` int(11) NOT NULL,
+  `description` text,
+  `description_gujarati` text,
+  `test_series_id` int NOT NULL,
+  `parent_id` int DEFAULT NULL,
+  `hierarchy_level` int NOT NULL,
   `hierarchy_path` varchar(500) DEFAULT NULL,
-  `display_order` int(11) DEFAULT 0,
+  `display_order` int DEFAULT '0',
   `icon_url` varchar(500) DEFAULT NULL,
   `color_code` varchar(7) DEFAULT NULL,
   `slug` varchar(200) DEFAULT NULL,
-  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
-  `instructions` text DEFAULT NULL,
-  `instructions_gujarati` text DEFAULT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
-  `is_featured` tinyint(1) DEFAULT 0,
-  `child_categories_count` int(11) DEFAULT 0,
-  `tests_count` int(11) DEFAULT 0,
-  `total_questions` int(11) DEFAULT 0,
-  `total_attempts` int(11) DEFAULT 0,
+  `tags` json DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `instructions` text,
+  `instructions_gujarati` text,
+  `is_active` tinyint(1) DEFAULT '1',
+  `is_featured` tinyint(1) DEFAULT '0',
+  `child_categories_count` int DEFAULT '0',
+  `tests_count` int DEFAULT '0',
+  `total_questions` int DEFAULT '0',
+  `total_attempts` int DEFAULT '0',
   `created_by` char(36) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -177,27 +149,26 @@ CREATE TABLE `hierarchy_categories` (
 --
 
 CREATE TABLE `leaderboard_entries` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `user_id` char(36) NOT NULL,
-  `test_id` int(11) NOT NULL,
+  `test_id` int NOT NULL,
   `test_session_id` char(36) NOT NULL,
-  `test_series_id` int(11) DEFAULT NULL,
-  `category_id` int(11) DEFAULT NULL COMMENT 'For category-based leaderboards',
-  `score` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `percentage` decimal(5,2) NOT NULL DEFAULT 0.00,
-  `total_questions` int(11) NOT NULL,
-  `correct_answers` int(11) NOT NULL DEFAULT 0,
-  `wrong_answers` int(11) NOT NULL DEFAULT 0,
-  `unanswered` int(11) NOT NULL DEFAULT 0,
-  `time_taken_seconds` int(11) NOT NULL COMMENT 'Total time taken to complete the test',
-  `rank` int(11) DEFAULT NULL COMMENT 'Calculated rank for this test',
+  `test_series_id` int DEFAULT NULL,
+  `category_id` int DEFAULT NULL COMMENT 'For category-based leaderboards',
+  `score` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `percentage` decimal(5,2) NOT NULL DEFAULT '0.00',
+  `total_questions` int NOT NULL,
+  `correct_answers` int NOT NULL DEFAULT '0',
+  `wrong_answers` int NOT NULL DEFAULT '0',
+  `unanswered` int NOT NULL DEFAULT '0',
+  `time_taken_seconds` int NOT NULL COMMENT 'Total time taken to complete the test',
+  `rank` int DEFAULT NULL COMMENT 'Calculated rank for this test',
   `percentile` decimal(5,2) DEFAULT NULL COMMENT 'Percentile score (0-100)',
   `completion_date` datetime NOT NULL COMMENT 'When the test was completed',
-  `is_valid` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'False for tests that should be excluded from rankings (e.g., practice tests)',
+  `is_valid` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'False for tests that should be excluded from rankings (e.g., practice tests)',
   `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  `final_score` decimal(10,2) NOT NULL DEFAULT 0.00
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -206,57 +177,57 @@ CREATE TABLE `leaderboard_entries` (
 --
 
 CREATE TABLE `new_tests` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
   `title` varchar(200) NOT NULL,
   `title_gujarati` varchar(400) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `description_gujarati` text DEFAULT NULL,
-  `test_series_id` int(11) NOT NULL,
-  `category_id` int(11) NOT NULL,
+  `description` text,
+  `description_gujarati` text,
+  `test_series_id` int NOT NULL,
+  `category_id` int NOT NULL,
   `test_type` enum('practice','mock','assessment','sample','full_length','previous_year','sectional') DEFAULT 'practice',
-  `duration_minutes` int(11) NOT NULL,
-  `total_questions` int(11) DEFAULT 0,
-  `total_marks` int(11) DEFAULT 0,
-  `passing_marks` int(11) DEFAULT 0,
-  `is_free` tinyint(1) DEFAULT 0,
-  `price` decimal(10,2) DEFAULT 0.00,
-  `is_one_time` tinyint(1) DEFAULT 0,
-  `allows_pause` tinyint(1) DEFAULT 1,
-  `max_attempts` int(11) DEFAULT NULL,
-  `has_negative_marking` tinyint(1) DEFAULT 0,
-  `negative_marks` decimal(3,2) DEFAULT 0.00,
-  `marks_per_question` int(11) DEFAULT 1,
+  `duration_minutes` int NOT NULL,
+  `total_questions` int DEFAULT '0',
+  `total_marks` int DEFAULT '0',
+  `passing_marks` int DEFAULT '0',
+  `is_free` tinyint(1) DEFAULT '0',
+  `price` decimal(10,2) DEFAULT '0.00',
+  `is_one_time` tinyint(1) DEFAULT '0',
+  `allows_pause` tinyint(1) DEFAULT '1',
+  `max_attempts` int DEFAULT NULL,
+  `has_negative_marking` tinyint(1) DEFAULT '0',
+  `negative_marks` decimal(3,2) DEFAULT '0.00',
+  `marks_per_question` int DEFAULT '1',
   `available_from` datetime DEFAULT NULL,
   `available_until` datetime DEFAULT NULL,
-  `show_results_immediately` tinyint(1) DEFAULT 1,
-  `show_correct_answers` tinyint(1) DEFAULT 1,
-  `show_explanations` tinyint(1) DEFAULT 1,
-  `supports_multilanguage` tinyint(1) DEFAULT 1,
-  `randomize_questions` tinyint(1) DEFAULT 0,
-  `randomize_options` tinyint(1) DEFAULT 0,
-  `instructions` text DEFAULT NULL,
-  `instructions_gujarati` text DEFAULT NULL,
+  `show_results_immediately` tinyint(1) DEFAULT '1',
+  `show_correct_answers` tinyint(1) DEFAULT '1',
+  `show_explanations` tinyint(1) DEFAULT '1',
+  `supports_multilanguage` tinyint(1) DEFAULT '1',
+  `randomize_questions` tinyint(1) DEFAULT '0',
+  `randomize_options` tinyint(1) DEFAULT '0',
+  `instructions` text,
+  `instructions_gujarati` text,
   `slug` varchar(200) DEFAULT NULL,
   `thumbnail_url` varchar(500) DEFAULT NULL,
-  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
-  `is_active` tinyint(1) DEFAULT 1,
-  `is_featured` tinyint(1) DEFAULT 0,
-  `is_published` tinyint(1) DEFAULT 0,
+  `tags` json DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `is_featured` tinyint(1) DEFAULT '0',
+  `is_published` tinyint(1) DEFAULT '0',
   `published_at` datetime DEFAULT NULL,
-  `display_order` int(11) DEFAULT 0,
-  `total_attempts` int(11) DEFAULT 0,
-  `total_completions` int(11) DEFAULT 0,
-  `average_score` decimal(5,2) DEFAULT 0.00,
-  `average_time_taken` int(11) DEFAULT 0,
-  `highest_score` decimal(5,2) DEFAULT 0.00,
-  `lowest_score` decimal(5,2) DEFAULT 0.00,
-  `pass_rate` decimal(5,2) DEFAULT 0.00,
+  `display_order` int DEFAULT '0',
+  `total_attempts` int DEFAULT '0',
+  `total_completions` int DEFAULT '0',
+  `average_score` decimal(5,2) DEFAULT '0.00',
+  `average_time_taken` int DEFAULT '0',
+  `highest_score` decimal(5,2) DEFAULT '0.00',
+  `lowest_score` decimal(5,2) DEFAULT '0.00',
+  `pass_rate` decimal(5,2) DEFAULT '0.00',
   `created_by` char(36) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -265,45 +236,45 @@ CREATE TABLE `new_tests` (
 --
 
 CREATE TABLE `new_test_series` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
   `name` varchar(255) NOT NULL,
-  `name_gujarati` text DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `description_gujarati` text DEFAULT NULL,
-  `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `name_gujarati` text,
+  `description` text,
+  `description_gujarati` text,
+  `price` decimal(10,2) NOT NULL DEFAULT '0.00',
   `currency` varchar(10) NOT NULL DEFAULT 'INR',
-  `free_test_count` int(11) NOT NULL DEFAULT 0,
+  `free_test_count` int NOT NULL DEFAULT '0',
   `difficulty_level` enum('beginner','intermediate','advanced') NOT NULL DEFAULT 'beginner',
-  `max_attempts_per_test` int(11) NOT NULL DEFAULT 1,
-  `supports_pause_resume` tinyint(1) DEFAULT 1,
-  `supports_multilanguage` tinyint(1) DEFAULT 1,
-  `has_negative_marking` tinyint(1) DEFAULT 0,
-  `negative_marks` decimal(3,2) DEFAULT 0.25,
-  `instructions` text DEFAULT NULL,
-  `instructions_gujarati` text DEFAULT NULL,
+  `max_attempts_per_test` int NOT NULL DEFAULT '1',
+  `supports_pause_resume` tinyint(1) DEFAULT '1',
+  `supports_multilanguage` tinyint(1) DEFAULT '1',
+  `has_negative_marking` tinyint(1) DEFAULT '0',
+  `negative_marks` decimal(3,2) DEFAULT '0.25',
+  `instructions` text,
+  `instructions_gujarati` text,
   `slug` varchar(200) DEFAULT NULL,
   `thumbnail_url` varchar(500) DEFAULT NULL,
-  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
-  `is_active` tinyint(1) DEFAULT 1,
-  `is_featured` tinyint(1) DEFAULT 0,
-  `is_published` tinyint(1) DEFAULT 0,
+  `tags` json DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `is_featured` tinyint(1) DEFAULT '0',
+  `is_published` tinyint(1) DEFAULT '0',
   `published_at` datetime DEFAULT NULL,
-  `total_categories` int(11) DEFAULT 0,
-  `total_tests` int(11) DEFAULT 0,
-  `total_questions` int(11) DEFAULT 0,
-  `total_enrollments` int(11) DEFAULT 0,
-  `average_rating` decimal(3,2) DEFAULT 0.00,
-  `total_reviews` int(11) DEFAULT 0,
+  `total_categories` int DEFAULT '0',
+  `total_tests` int DEFAULT '0',
+  `total_questions` int DEFAULT '0',
+  `total_enrollments` int DEFAULT '0',
+  `average_rating` decimal(3,2) DEFAULT '0.00',
+  `total_reviews` int DEFAULT '0',
   `created_by` char(36) DEFAULT NULL,
-  `pricing_type` enum('free','paid','previous_years_question_papers') NOT NULL DEFAULT 'free' COMMENT 'Type of test series: free, paid, or previous years question papers',
-  `features` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON field to store additional features like study materials, mock tests, etc.' CHECK (json_valid(`features`)),
-  `discount_percentage` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `pricing_type` enum('free','paid') NOT NULL DEFAULT 'free',
+  `demo_tests_count` int NOT NULL DEFAULT '0',
+  `subscription_duration_days` int NOT NULL DEFAULT '365',
+  `features` json DEFAULT NULL COMMENT 'JSON field to store additional features like study materials, mock tests, etc.',
+  `discount_percentage` decimal(5,2) NOT NULL DEFAULT '0.00',
   `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  `validity_days` int(11) DEFAULT 365 COMMENT 'Number of days the course is valid after purchase',
-  `is_course_closed` tinyint(1) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -312,12 +283,12 @@ CREATE TABLE `new_test_series` (
 --
 
 CREATE TABLE `notifications` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `user_id` char(36) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `body` text NOT NULL,
   `type` enum('quiz_reminder','test_result','new_content','subscription','general') NOT NULL DEFAULT 'general',
-  `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`data`)),
+  `data` json DEFAULT NULL,
   `topic` varchar(255) DEFAULT NULL,
   `status` enum('pending','sent','delivered','failed','read') NOT NULL DEFAULT 'pending',
   `sent_at` datetime DEFAULT NULL,
@@ -325,7 +296,7 @@ CREATE TABLE `notifications` (
   `read_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -336,30 +307,30 @@ CREATE TABLE `notifications` (
 CREATE TABLE `pdfs` (
   `id` char(36) NOT NULL,
   `title` varchar(255) NOT NULL COMMENT 'Display title for the PDF',
-  `description` text DEFAULT NULL,
-  `category_id` int(11) DEFAULT NULL,
+  `description` text,
+  `category_id` int DEFAULT NULL,
   `file_path` varchar(255) NOT NULL COMMENT 'Server path to the PDF file',
   `original_filename` varchar(255) NOT NULL COMMENT 'Original filename when uploaded',
-  `file_size` bigint(20) NOT NULL COMMENT 'File size in bytes',
+  `file_size` bigint NOT NULL COMMENT 'File size in bytes',
   `mime_type` varchar(255) DEFAULT 'application/pdf' COMMENT 'MIME type of the file',
   `access_level` enum('free','premium','restricted') DEFAULT 'free' COMMENT 'Who can access this PDF',
   `test_series_id` char(36) DEFAULT NULL COMMENT 'Link to specific test series if applicable',
-  `exam_type_id` int(11) DEFAULT NULL COMMENT 'Link to exam type if applicable',
-  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Array of tags for better search' CHECK (json_valid(`tags`)),
-  `download_count` int(11) DEFAULT 0 COMMENT 'Number of times downloaded',
-  `view_count` int(11) DEFAULT 0 COMMENT 'Number of times viewed',
-  `is_active` tinyint(1) DEFAULT 1,
-  `is_featured` tinyint(1) DEFAULT 0,
+  `exam_type_id` int DEFAULT NULL COMMENT 'Link to exam type if applicable',
+  `tags` json DEFAULT NULL COMMENT 'Array of tags for better search',
+  `download_count` int DEFAULT '0' COMMENT 'Number of times downloaded',
+  `view_count` int DEFAULT '0' COMMENT 'Number of times viewed',
+  `is_active` tinyint(1) DEFAULT '1',
+  `is_featured` tinyint(1) DEFAULT '0',
   `uploaded_by` char(36) DEFAULT NULL COMMENT 'Admin who uploaded this PDF',
-  `price` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Price for premium PDFs',
+  `price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT 'Price for premium PDFs',
   `currency` varchar(10) NOT NULL DEFAULT 'INR' COMMENT 'Currency for pricing',
-  `is_free` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Whether the PDF is free to access',
-  `discount_percentage` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Discount percentage if any',
-  `subscription_required` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether subscription is required to access',
-  `preview_pages` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of preview pages available for free',
+  `is_free` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Whether the PDF is free to access',
+  `discount_percentage` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT 'Discount percentage if any',
+  `subscription_required` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether subscription is required to access',
+  `preview_pages` int NOT NULL DEFAULT '0' COMMENT 'Number of preview pages available for free',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -368,17 +339,17 @@ CREATE TABLE `pdfs` (
 --
 
 CREATE TABLE `pdf_categories` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `name` varchar(255) NOT NULL COMMENT 'Category name (e.g., Study Materials, Previous Papers, etc.)',
   `slug` varchar(255) NOT NULL COMMENT 'URL-friendly version of name',
-  `description` text DEFAULT NULL,
+  `description` text,
   `icon` varchar(255) DEFAULT NULL COMMENT 'Icon name for category display',
   `color` varchar(255) DEFAULT '#3B82F6' COMMENT 'Hex color code for category',
-  `sort_order` int(11) DEFAULT 0 COMMENT 'Display order for categories',
-  `is_active` tinyint(1) DEFAULT 1,
+  `sort_order` int DEFAULT '0' COMMENT 'Display order for categories',
+  `is_active` tinyint(1) DEFAULT '1',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -387,36 +358,35 @@ CREATE TABLE `pdf_categories` (
 --
 
 CREATE TABLE `questions` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
-  `test_id` int(11) DEFAULT NULL,
-  `category_id` int(11) DEFAULT NULL COMMENT 'Direct link to category for simplified hierarchy',
-  `question_text` text DEFAULT NULL,
-  `question_text_gujarati` text DEFAULT NULL COMMENT 'Question text in Gujarati language',
-  `option_a` text DEFAULT NULL,
-  `option_a_gujarati` text DEFAULT NULL COMMENT 'Option A in Gujarati language',
-  `option_b` text DEFAULT NULL,
-  `option_b_gujarati` text DEFAULT NULL COMMENT 'Option B in Gujarati language',
-  `option_c` text DEFAULT NULL,
-  `option_c_gujarati` text DEFAULT NULL COMMENT 'Option C in Gujarati language',
-  `option_d` text DEFAULT NULL,
-  `option_d_gujarati` text DEFAULT NULL COMMENT 'Option D in Gujarati language',
+  `test_id` int DEFAULT NULL,
+  `category_id` int DEFAULT NULL COMMENT 'Direct link to category for simplified hierarchy',
+  `question_text` text,
+  `question_text_gujarati` text COMMENT 'Question text in Gujarati language',
+  `option_a` text,
+  `option_a_gujarati` text COMMENT 'Option A in Gujarati language',
+  `option_b` text,
+  `option_b_gujarati` text COMMENT 'Option B in Gujarati language',
+  `option_c` text,
+  `option_c_gujarati` text COMMENT 'Option C in Gujarati language',
+  `option_d` text,
+  `option_d_gujarati` text COMMENT 'Option D in Gujarati language',
   `correct_answer` enum('A','B','C','D') NOT NULL,
-  `explanation` text DEFAULT NULL,
-  `explanation_gujarati` text DEFAULT NULL COMMENT 'Explanation in Gujarati language',
-  `marks` int(11) NOT NULL DEFAULT 1,
+  `explanation` text,
+  `explanation_gujarati` text COMMENT 'Explanation in Gujarati language',
+  `marks` int NOT NULL DEFAULT '1',
   `subject_tag` varchar(100) DEFAULT NULL COMMENT 'Subject tag for the question (e.g., Mathematics, Physics)',
   `topic_tag` varchar(100) DEFAULT NULL COMMENT 'Topic tag for the question (e.g., Algebra, Geometry)',
   `difficulty_tag` enum('easy','medium','hard') NOT NULL DEFAULT 'medium' COMMENT 'Difficulty level of the question',
-  `time_to_solve_seconds` int(11) NOT NULL DEFAULT 120 COMMENT 'Expected time to solve this question in seconds',
+  `time_to_solve_seconds` int NOT NULL DEFAULT '120' COMMENT 'Expected time to solve this question in seconds',
   `question_type` enum('single_choice','multiple_choice','true_false','fill_blank') NOT NULL DEFAULT 'single_choice' COMMENT 'Type of question',
   `negative_marks` decimal(3,2) DEFAULT NULL COMMENT 'Negative marks for wrong answer',
-  `display_order` int(11) NOT NULL DEFAULT 0 COMMENT 'Display order for sorting questions',
-  `is_active` tinyint(1) DEFAULT 1,
+  `display_order` int NOT NULL DEFAULT '0' COMMENT 'Display order for sorting questions',
+  `is_active` tinyint(1) DEFAULT '1',
   `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  `question_order` int(11) DEFAULT NULL COMMENT 'Order of question from Excel import or manual creation'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -427,54 +397,32 @@ CREATE TABLE `questions` (
 CREATE TABLE `question_imports` (
   `id` char(36) NOT NULL,
   `admin_id` char(36) NOT NULL,
-  `category_id` int(11) NOT NULL,
-  `test_series_id` int(11) DEFAULT NULL,
+  `category_id` int NOT NULL,
+  `test_series_id` int DEFAULT NULL,
   `filename` varchar(255) NOT NULL,
   `original_filename` varchar(255) NOT NULL,
-  `file_size` bigint(20) NOT NULL,
+  `file_size` bigint NOT NULL,
   `file_type` enum('excel','csv') NOT NULL,
-  `total_rows` int(11) DEFAULT 0,
-  `successful_imports` int(11) DEFAULT 0,
-  `failed_imports` int(11) DEFAULT 0,
+  `total_rows` int DEFAULT '0',
+  `successful_imports` int DEFAULT '0',
+  `failed_imports` int DEFAULT '0',
   `import_status` enum('uploaded','validating','validated','importing','completed','failed') NOT NULL DEFAULT 'uploaded',
-  `validation_errors` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON array of validation errors with row numbers' CHECK (json_valid(`validation_errors`)),
-  `import_errors` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON array of import errors with row numbers' CHECK (json_valid(`import_errors`)),
-  `import_summary` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Summary of imported question IDs and statistics' CHECK (json_valid(`import_summary`)),
+  `validation_errors` json DEFAULT NULL COMMENT 'JSON array of validation errors with row numbers',
+  `import_errors` json DEFAULT NULL COMMENT 'JSON array of import errors with row numbers',
+  `import_summary` json DEFAULT NULL COMMENT 'Summary of imported question IDs and statistics',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `question_reports`
+-- Table structure for table `SequelizeMeta`
 --
 
-CREATE TABLE `question_reports` (
-  `id` int(11) NOT NULL,
-  `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `question_id` int(11) NOT NULL COMMENT 'References questions.id',
-  `user_id` int(11) NOT NULL COMMENT 'User who submitted the report',
-  `report_type` enum('wrong_question','wrong_solution','other') NOT NULL COMMENT 'Type of issue reported',
-  `report_text` text DEFAULT NULL COMMENT 'User description for "other" type or additional details',
-  `user_selected_answer` varchar(1) DEFAULT NULL COMMENT 'A, B, C, or D - what user answered',
-  `status` enum('pending','under_review','resolved','rejected') NOT NULL DEFAULT 'pending' COMMENT 'Current status of the report',
-  `admin_notes` text DEFAULT NULL COMMENT 'Internal notes visible only to admins',
-  `reviewed_by` varchar(255) DEFAULT NULL COMMENT 'Admin UUID who reviewed this report',
-  `reviewed_at` datetime DEFAULT NULL COMMENT 'When the report was reviewed',
-  `created_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'When report was submitted',
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last update timestamp'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stores user-submitted reports for question issues';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `sequelizemeta`
---
-
-CREATE TABLE `sequelizemeta` (
-  `name` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+CREATE TABLE `SequelizeMeta` (
+  `name` varchar(255) COLLATE utf8mb3_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -485,7 +433,7 @@ CREATE TABLE `sequelizemeta` (
 CREATE TABLE `subscription` (
   `id` char(36) NOT NULL,
   `user_id` char(36) NOT NULL,
-  `test_series_id` int(11) DEFAULT NULL,
+  `test_series_id` int DEFAULT NULL,
   `transaction_id` varchar(255) NOT NULL,
   `payment_method` varchar(255) DEFAULT NULL,
   `amount_paid` double NOT NULL,
@@ -493,10 +441,10 @@ CREATE TABLE `subscription` (
   `status` enum('pending','completed','failed','refunded') DEFAULT 'pending',
   `purchase_date` datetime NOT NULL,
   `expiry_date` datetime DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Additional metadata for the subscription (payment details, PDF info, etc.)' CHECK (json_valid(`metadata`)),
+  `metadata` json DEFAULT NULL COMMENT 'Additional metadata for the subscription (payment details, PDF info, etc.)',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -505,17 +453,17 @@ CREATE TABLE `subscription` (
 --
 
 CREATE TABLE `sub_categories` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
-  `category_id` int(11) NOT NULL,
+  `category_id` int NOT NULL,
   `name` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
+  `description` text,
   `name_gujarati` varchar(255) DEFAULT NULL COMMENT 'Sub-category name in Gujarati',
-  `description_gujarati` text DEFAULT NULL COMMENT 'Sub-category description in Gujarati',
-  `is_active` tinyint(1) DEFAULT 1,
+  `description_gujarati` text COMMENT 'Sub-category description in Gujarati',
+  `is_active` tinyint(1) DEFAULT '1',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -524,40 +472,40 @@ CREATE TABLE `sub_categories` (
 --
 
 CREATE TABLE `tests` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
-  `sub_category_id` int(11) NOT NULL,
+  `sub_category_id` int NOT NULL,
   `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `duration_minutes` int(11) NOT NULL DEFAULT 60,
-  `total_marks` int(11) NOT NULL DEFAULT 0,
-  `is_demo` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'True if this test is a demo test in a paid series',
-  `is_free_in_paid_series` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'True if this test is free even in a paid test series',
-  `negative_marking_enabled` tinyint(1) NOT NULL DEFAULT 0,
-  `negative_marks_per_wrong` decimal(3,2) NOT NULL DEFAULT 0.25 COMMENT 'Negative marks deducted for each wrong answer',
-  `is_one_time_only` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'True if student can take this test only once in one session',
-  `max_duration_minutes` int(11) DEFAULT NULL COMMENT 'Maximum duration for one-time tests (overrides duration_minutes)',
-  `attempt_restrictions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON field for attempt restrictions like max attempts, cooldown periods' CHECK (json_valid(`attempt_restrictions`)),
-  `passing_marks` int(11) DEFAULT NULL COMMENT 'Minimum marks required to pass the test',
-  `instructions` text DEFAULT NULL COMMENT 'Special instructions for the test',
-  `instructions_gujarati` text DEFAULT NULL COMMENT 'Test instructions in Gujarati',
-  `is_free_in_series` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether this test is free in a paid series',
+  `description` text,
+  `duration_minutes` int NOT NULL DEFAULT '60',
+  `total_marks` int NOT NULL DEFAULT '0',
+  `is_demo` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'True if this test is a demo test in a paid series',
+  `is_free_in_paid_series` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'True if this test is free even in a paid test series',
+  `negative_marking_enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `negative_marks_per_wrong` decimal(3,2) NOT NULL DEFAULT '0.25' COMMENT 'Negative marks deducted for each wrong answer',
+  `is_one_time_only` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'True if student can take this test only once in one session',
+  `max_duration_minutes` int DEFAULT NULL COMMENT 'Maximum duration for one-time tests (overrides duration_minutes)',
+  `attempt_restrictions` json DEFAULT NULL COMMENT 'JSON field for attempt restrictions like max attempts, cooldown periods',
+  `passing_marks` int DEFAULT NULL COMMENT 'Minimum marks required to pass the test',
+  `instructions` text COMMENT 'Special instructions for the test',
+  `instructions_gujarati` text COMMENT 'Test instructions in Gujarati',
+  `is_free_in_series` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether this test is free in a paid series',
   `negative_marking` decimal(3,2) DEFAULT NULL COMMENT 'Negative marking for this specific test (overrides series setting)',
-  `time_duration_minutes` int(11) NOT NULL DEFAULT 60 COMMENT 'Test duration in minutes',
-  `max_attempts_override` int(11) DEFAULT NULL COMMENT 'Override max attempts for this specific test',
+  `time_duration_minutes` int NOT NULL DEFAULT '60' COMMENT 'Test duration in minutes',
+  `max_attempts_override` int DEFAULT NULL COMMENT 'Override max attempts for this specific test',
   `difficulty_level` enum('easy','medium','hard') NOT NULL DEFAULT 'medium' COMMENT 'Difficulty level of the test',
-  `randomize_questions` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether to randomize question order',
-  `show_results_immediately` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Whether to show results immediately after test completion',
-  `pass_percentage` decimal(5,2) NOT NULL DEFAULT 60.00 COMMENT 'Minimum percentage required to pass',
-  `allow_review` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Whether students can review answers after test',
-  `total_questions` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of questions in the test',
-  `display_order` int(11) NOT NULL DEFAULT 0 COMMENT 'Display order for sorting tests',
+  `randomize_questions` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether to randomize question order',
+  `show_results_immediately` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Whether to show results immediately after test completion',
+  `pass_percentage` decimal(5,2) NOT NULL DEFAULT '60.00' COMMENT 'Minimum percentage required to pass',
+  `allow_review` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Whether students can review answers after test',
+  `total_questions` int NOT NULL DEFAULT '0' COMMENT 'Total number of questions in the test',
+  `display_order` int NOT NULL DEFAULT '0' COMMENT 'Display order for sorting tests',
   `title_gujarati` varchar(255) DEFAULT NULL COMMENT 'Test title in Gujarati language',
-  `description_gujarati` text DEFAULT NULL COMMENT 'Test description in Gujarati language',
-  `is_active` tinyint(1) DEFAULT 1,
+  `description_gujarati` text COMMENT 'Test description in Gujarati language',
+  `is_active` tinyint(1) DEFAULT '1',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -566,32 +514,32 @@ CREATE TABLE `tests` (
 --
 
 CREATE TABLE `test_series` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
   `title` varchar(200) NOT NULL,
   `title_gujarati` varchar(400) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `category_id` int(11) NOT NULL,
-  `price` decimal(10,2) DEFAULT 0.00,
-  `is_free` tinyint(1) DEFAULT 0,
+  `description` text,
+  `category_id` int NOT NULL,
+  `price` decimal(10,2) DEFAULT '0.00',
+  `is_free` tinyint(1) DEFAULT '0',
   `difficulty_level` enum('beginner','intermediate','advanced','expert') DEFAULT 'intermediate',
-  `total_tests` int(11) DEFAULT 0,
-  `is_published` tinyint(1) DEFAULT 0,
-  `is_featured` tinyint(1) DEFAULT 0,
-  `is_active` tinyint(1) DEFAULT 1,
+  `total_tests` int DEFAULT '0',
+  `is_published` tinyint(1) DEFAULT '0',
+  `is_featured` tinyint(1) DEFAULT '0',
+  `is_active` tinyint(1) DEFAULT '1',
   `created_by` varchar(36) DEFAULT NULL,
-  `name_gujarati` text DEFAULT NULL COMMENT 'Test series name in Gujarati language',
-  `description_gujarati` text DEFAULT NULL COMMENT 'Test series description in Gujarati language',
-  `free_tests_count` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of free tests in paid series',
-  `requires_subscription` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether series requires subscription to access',
-  `negative_marking_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether negative marking is enabled for this series',
-  `negative_marking_value` decimal(3,2) DEFAULT 0.25 COMMENT 'Negative marking value (e.g., 0.25, 0.20, 0.33)',
-  `one_time_completion` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether tests can be taken only once',
-  `max_attempts` int(11) NOT NULL DEFAULT 1 COMMENT 'Maximum attempts allowed per test',
-  `auto_submit_on_expire` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Auto submit test when time expires',
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `name_gujarati` text COMMENT 'Test series name in Gujarati language',
+  `description_gujarati` text COMMENT 'Test series description in Gujarati language',
+  `free_tests_count` int NOT NULL DEFAULT '0' COMMENT 'Number of free tests in paid series',
+  `requires_subscription` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether series requires subscription to access',
+  `negative_marking_enabled` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether negative marking is enabled for this series',
+  `negative_marking_value` decimal(3,2) DEFAULT '0.25' COMMENT 'Negative marking value (e.g., 0.25, 0.20, 0.33)',
+  `one_time_completion` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether tests can be taken only once',
+  `max_attempts` int NOT NULL DEFAULT '1' COMMENT 'Maximum attempts allowed per test',
+  `auto_submit_on_expire` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Auto submit test when time expires',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -602,36 +550,25 @@ CREATE TABLE `test_series` (
 CREATE TABLE `test_sessions` (
   `id` char(36) NOT NULL,
   `user_id` char(36) NOT NULL,
-  `test_id` int(11) NOT NULL,
+  `test_id` int NOT NULL,
   `started_at` datetime NOT NULL,
   `completed_at` datetime DEFAULT NULL,
-  `is_completed` tinyint(1) NOT NULL DEFAULT 0,
-  `is_submitted` tinyint(1) NOT NULL DEFAULT 0,
-  `remaining_time_seconds` int(11) DEFAULT NULL COMMENT 'Remaining time in seconds for the test session',
-  `current_question_index` int(11) NOT NULL DEFAULT 0,
-  `total_questions` int(11) NOT NULL,
-  `session_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON field to store session-specific data like answered questions, time spent per question, etc.' CHECK (json_valid(`session_data`)),
-  `answers_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON field to store all answers for quick access' CHECK (json_valid(`answers_data`)),
+  `is_completed` tinyint(1) NOT NULL DEFAULT '0',
+  `is_submitted` tinyint(1) NOT NULL DEFAULT '0',
+  `remaining_time_seconds` int DEFAULT NULL COMMENT 'Remaining time in seconds for the test session',
+  `current_question_index` int NOT NULL DEFAULT '0',
+  `total_questions` int NOT NULL,
+  `session_data` json DEFAULT NULL COMMENT 'JSON field to store session-specific data like answered questions, time spent per question, etc.',
+  `answers_data` json DEFAULT NULL COMMENT 'JSON field to store all answers for quick access',
   `calculated_score` decimal(10,2) DEFAULT NULL COMMENT 'Final calculated score including negative marking',
-  `total_correct` int(11) NOT NULL DEFAULT 0,
-  `total_wrong` int(11) NOT NULL DEFAULT 0,
-  `total_unanswered` int(11) NOT NULL DEFAULT 0,
-  `total_marked_for_review` int(11) NOT NULL DEFAULT 0,
+  `total_correct` int NOT NULL DEFAULT '0',
+  `total_wrong` int NOT NULL DEFAULT '0',
+  `total_unanswered` int NOT NULL DEFAULT '0',
+  `total_marked_for_review` int NOT NULL DEFAULT '0',
   `status` enum('active','paused','completed','expired','cancelled') NOT NULL DEFAULT 'active',
   `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  `test_name` varchar(255) DEFAULT NULL COMMENT 'Cached test name for test history',
-  `category_name` varchar(255) DEFAULT NULL COMMENT 'Cached category name for test history',
-  `total_marks` decimal(10,2) DEFAULT 0.00 COMMENT 'Total marks in the test',
-  `obtained_marks` decimal(10,2) DEFAULT 0.00 COMMENT 'Marks obtained before negative marking',
-  `negative_marks` decimal(10,2) DEFAULT 0.00 COMMENT 'Negative marks deducted',
-  `attempted_questions` int(11) DEFAULT 0 COMMENT 'Number of questions attempted by user',
-  `accuracy` decimal(5,2) DEFAULT 0.00 COMMENT 'Accuracy percentage (obtained/attempted * 100)',
-  `final_score` decimal(10,2) DEFAULT NULL,
-  `percentage` decimal(5,2) DEFAULT NULL,
-  `negative_marks_per_wrong` decimal(3,2) DEFAULT 0.00,
-  `time_spent_seconds` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -641,20 +578,19 @@ CREATE TABLE `test_sessions` (
 
 CREATE TABLE `users` (
   `uuid` char(36) NOT NULL,
-  `id` int(11) NOT NULL,
   `username` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `profileImage` varchar(255) DEFAULT NULL,
-  `otp` int(11) DEFAULT NULL,
+  `otp` int DEFAULT NULL,
   `phone` varchar(255) DEFAULT NULL,
   `lastLogin` datetime DEFAULT NULL,
-  `isActive` tinyint(1) NOT NULL DEFAULT 1,
-  `isEmailVerified` tinyint(1) NOT NULL DEFAULT 0,
+  `isActive` tinyint(1) NOT NULL DEFAULT '1',
+  `isEmailVerified` tinyint(1) NOT NULL DEFAULT '0',
   `otpExpiry` datetime DEFAULT NULL,
   `subscription_status` enum('none','active','expired') NOT NULL DEFAULT 'none',
-  `total_subscriptions` int(11) NOT NULL DEFAULT 0,
-  `subscription_expiry_reminder_sent` tinyint(1) NOT NULL DEFAULT 0,
+  `total_subscriptions` int NOT NULL DEFAULT '0',
+  `subscription_expiry_reminder_sent` tinyint(1) NOT NULL DEFAULT '0',
   `fullName` varchar(255) DEFAULT NULL,
   `phoneNumber` varchar(255) DEFAULT NULL,
   `dateOfBirth` date DEFAULT NULL,
@@ -662,22 +598,9 @@ CREATE TABLE `users` (
   `city` varchar(255) DEFAULT NULL,
   `state` varchar(255) DEFAULT NULL,
   `avatarUrl` varchar(255) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `current_session_id` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Triggers `users`
---
-DELIMITER $$
-CREATE TRIGGER `before_user_insert` BEFORE INSERT ON `users` FOR EACH ROW BEGIN
-        IF NEW.id IS NULL THEN
-          SET NEW.id = (SELECT IFNULL(MAX(id), 0) + 1 FROM users);
-        END IF;
-      END
-$$
-DELIMITER ;
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -686,17 +609,17 @@ DELIMITER ;
 --
 
 CREATE TABLE `user_answers` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `test_session_id` char(36) NOT NULL,
-  `question_id` int(11) NOT NULL,
+  `question_id` int NOT NULL,
   `selected_option` enum('A','B','C','D') DEFAULT NULL,
-  `is_correct` tinyint(1) DEFAULT 0,
-  `time_spent` int(11) DEFAULT 0 COMMENT 'Time spent on this question in seconds',
-  `is_flagged` tinyint(1) DEFAULT 0,
-  `is_visited` tinyint(1) DEFAULT 0,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `is_correct` tinyint(1) DEFAULT '0',
+  `time_spent` int DEFAULT '0' COMMENT 'Time spent on this question in seconds',
+  `is_flagged` tinyint(1) DEFAULT '0',
+  `is_visited` tinyint(1) DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Indexes for dumped tables
@@ -721,18 +644,6 @@ ALTER TABLE `categories`
   ADD KEY `idx_categories_parent` (`parent_category_id`),
   ADD KEY `idx_categories_test_series_level` (`test_series_id`,`hierarchy_level`),
   ADD KEY `idx_categories_node_type` (`node_type`);
-
---
--- Indexes for table `contact_queries`
---
-ALTER TABLE `contact_queries`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `viewed_by` (`viewed_by`),
-  ADD KEY `solved_by` (`solved_by`),
-  ADD KEY `idx_contact_queries_email` (`email`),
-  ADD KEY `idx_contact_queries_status` (`status`),
-  ADD KEY `idx_contact_queries_created_at` (`created_at`),
-  ADD KEY `idx_contact_queries_mobile` (`mobile_number`);
 
 --
 -- Indexes for table `exam_categories`
@@ -850,8 +761,7 @@ ALTER TABLE `questions`
   ADD KEY `questions_difficulty_tag` (`difficulty_tag`),
   ADD KEY `questions_display_order` (`display_order`),
   ADD KEY `questions_marks` (`marks`),
-  ADD KEY `idx_questions_category` (`category_id`),
-  ADD KEY `idx_questions_category_order` (`category_id`,`question_order`);
+  ADD KEY `idx_questions_category` (`category_id`);
 
 --
 -- Indexes for table `question_imports`
@@ -865,21 +775,9 @@ ALTER TABLE `question_imports`
   ADD KEY `question_imports_created_at` (`created_at`);
 
 --
--- Indexes for table `question_reports`
+-- Indexes for table `SequelizeMeta`
 --
-ALTER TABLE `question_reports`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uuid` (`uuid`),
-  ADD KEY `reviewed_by` (`reviewed_by`),
-  ADD KEY `idx_question_status` (`question_id`,`status`),
-  ADD KEY `idx_status_created` (`status`,`created_at`),
-  ADD KEY `idx_user_id` (`user_id`),
-  ADD KEY `idx_created_at` (`created_at`);
-
---
--- Indexes for table `sequelizemeta`
---
-ALTER TABLE `sequelizemeta`
+ALTER TABLE `SequelizeMeta`
   ADD PRIMARY KEY (`name`),
   ADD UNIQUE KEY `name` (`name`);
 
@@ -951,7 +849,6 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`uuid`),
   ADD UNIQUE KEY `username` (`username`),
   ADD UNIQUE KEY `email` (`email`),
-  ADD UNIQUE KEY `idx_users_id` (`id`),
   ADD KEY `users_is_active` (`isActive`),
   ADD KEY `users_last_login` (`lastLogin`);
 
@@ -972,97 +869,85 @@ ALTER TABLE `user_answers`
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `contact_queries`
---
-ALTER TABLE `contact_queries`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `exam_categories`
 --
 ALTER TABLE `exam_categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `exam_types`
 --
 ALTER TABLE `exam_types`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `hierarchy_categories`
 --
 ALTER TABLE `hierarchy_categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `leaderboard_entries`
 --
 ALTER TABLE `leaderboard_entries`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `new_tests`
 --
 ALTER TABLE `new_tests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `new_test_series`
 --
 ALTER TABLE `new_test_series`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `pdf_categories`
 --
 ALTER TABLE `pdf_categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `questions`
 --
 ALTER TABLE `questions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `question_reports`
---
-ALTER TABLE `question_reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `sub_categories`
 --
 ALTER TABLE `sub_categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tests`
 --
 ALTER TABLE `tests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `test_series`
 --
 ALTER TABLE `test_series`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `user_answers`
 --
 ALTER TABLE `user_answers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
@@ -1073,13 +958,6 @@ ALTER TABLE `user_answers`
 --
 ALTER TABLE `categories`
   ADD CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`parent_category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Constraints for table `contact_queries`
---
-ALTER TABLE `contact_queries`
-  ADD CONSTRAINT `contact_queries_ibfk_1` FOREIGN KEY (`viewed_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `contact_queries_ibfk_2` FOREIGN KEY (`solved_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `exam_categories`
@@ -1128,7 +1006,7 @@ ALTER TABLE `notifications`
 -- Constraints for table `pdfs`
 --
 ALTER TABLE `pdfs`
-  ADD CONSTRAINT `pdfs_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `pdf_categories` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pdfs_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `pdf_categories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `pdfs_ibfk_2` FOREIGN KEY (`exam_type_id`) REFERENCES `exam_types` (`id`);
 
 --
@@ -1144,13 +1022,6 @@ ALTER TABLE `question_imports`
   ADD CONSTRAINT `question_imports_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admins` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `question_imports_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `question_imports_ibfk_3` FOREIGN KEY (`test_series_id`) REFERENCES `new_test_series` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Constraints for table `question_reports`
---
-ALTER TABLE `question_reports`
-  ADD CONSTRAINT `question_reports_ibfk_1` FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `question_reports_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `subscription`
