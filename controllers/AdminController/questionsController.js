@@ -117,10 +117,6 @@ const generateAndSendTemplate = async (req, res, next, format) => {
 // Helper function to handle file imports
 const handleFileImport = async (req, res, next) => {
     try {
-        console.log('📤 Starting file import process...');
-        console.log('📋 Request body:', req.body);
-        console.log('📁 Files:', req.files);
-
         if (!req.files || !req.files.file) {
             return next(new ErrorHandler('No file uploaded', 400));
         }

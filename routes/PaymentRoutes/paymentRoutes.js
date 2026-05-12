@@ -7,6 +7,7 @@ router.use('/checkout', paymentCheckoutRouter);
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { authToken } = require('../../utils/AuthToken');
+const { adminAuth } = require('../../utils/AdminAuth');
 const { User, TestSeries, Subscription, Pdfs } = require('../../models');
 const { Op } = require('sequelize');
 const {
@@ -17,15 +18,10 @@ const {
   verifyWebhookSignature
 } = require('../../config/razorpay');
 
-// Middleware for logging payment requests
+// Lightweight payment-flow logger — never logs request bodies (would leak amounts,
+// payment IDs, user IDs, signatures) or auth state.
 const paymentLogger = (req, res, next) => {
   console.log(`💰 Payment API: ${req.method} ${req.originalUrl}`);
-  console.log('📋 Request Body:', req.body);
-  console.log('🔑 Headers:', {
-    authorization: req.headers.authorization ? 'Present' : 'Missing',
-    contentType: req.headers['content-type'],
-    origin: req.headers.origin
-  });
   next();
 };
 
@@ -679,8 +675,8 @@ async function handleOrderPaid(payload) {
   }
 }
 
-// ADMIN/TESTING: Clean up old pending payments (older than 30 minutes)
-router.delete('/cleanup-pending', authToken, async (req, res) => {
+// ADMIN: Clean up old pending payments (older than 30 minutes)
+router.delete('/cleanup-pending', adminAuth, async (req, res) => {
   try {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 

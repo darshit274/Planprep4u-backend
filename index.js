@@ -15,47 +15,41 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configure CORS to allow all origins and methods
+// CORS: allow only known frontend origins. Extend via the ALLOWED_ORIGINS env var
+// (comma-separated) when adding staging/production domains.
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+];
+const envAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...envAllowedOrigins]);
+
 app.use(cors({
-  origin: '*', // Allow all origins
+  origin(origin, callback) {
+    // Allow same-origin / non-browser tools (curl, mobile apps) which omit Origin.
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  credentials: false, // Set to false when using origin: '*'
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
+
 // Trust proxy for devtunnels/ngrok
 app.set('trust proxy', true);
 
-// Handle preflight requests explicitly
+// Request logging middleware — method/path only. Origin and request bodies are
+// intentionally excluded to avoid leaking PII or auth state into stdout.
 app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.status(200).send();
-  } else {
-    next();
-  }
-});
-
-// Manual CORS headers middleware (fallback)
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  next();
-});
-
-// Request logging middleware for debugging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.get('origin') || 'No origin'}`);
-  if (req.path.includes('/upload')) {
-    console.log('🚨 UPLOAD REQUEST DETECTED:');
-    console.log('  Path:', req.path);
-    console.log('  Method:', req.method);
-    console.log('  Content-Type:', req.get('content-type'));
-    console.log('  Content-Length:', req.get('content-length'));
-  }
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 

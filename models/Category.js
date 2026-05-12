@@ -88,10 +88,19 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: true
   });
 
+  // Strip Gujarati fields from API output (columns remain in DB).
+  Category.prototype.toJSON = function () {
+    const v = { ...this.get({ plain: true }) };
+    for (const k of Object.keys(v)) {
+      if (k.endsWith('_gujarati')) delete v[k];
+    }
+    return v;
+  };
+
   Category.associate = function(models) {
     // Existing associations
-    Category.belongsTo(models.TestSeries, { 
-      foreignKey: 'test_series_id', 
+    Category.belongsTo(models.TestSeries, {
+      foreignKey: 'test_series_id',
       as: 'testSeries' 
     });
     Category.hasMany(models.SubCategory, { 

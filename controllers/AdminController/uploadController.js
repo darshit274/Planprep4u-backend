@@ -90,7 +90,19 @@ exports.deleteEditorImage = async (req, res, next) => {
       return next(new ErrorHandler('Filename is required', 400));
     }
 
-    const filePath = path.join(__dirname, '../../uploads/editor_images', filename);
+    // Reject any filename that contains a path separator or `..` — only flat names
+    // produced by uploadEditorImage (`editor_<uuid>.<ext>`) are valid here.
+    if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      return next(new ErrorHandler('Invalid filename', 400));
+    }
+
+    const editorImagesDir = path.resolve(path.join(__dirname, '../../uploads/editor_images'));
+    const filePath = path.resolve(path.join(editorImagesDir, filename));
+
+    // Defence-in-depth: verify the resolved path is still inside the editor_images dir.
+    if (!filePath.startsWith(editorImagesDir + path.sep)) {
+      return next(new ErrorHandler('Invalid filename', 400));
+    }
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {

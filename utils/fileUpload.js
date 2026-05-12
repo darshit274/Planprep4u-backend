@@ -60,12 +60,16 @@ const getMimeTypeFromExtension = (extension) => {
   return mime.lookup(extension) || null;
 };
 
+// Default 10MB limit when caller doesn't specify one. Multer interprets a falsy
+// fileSize as "no limit", which is unsafe.
+const DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 // Middleware for file upload
 exports.imageUpload = (extensions = null, fieldName = 'files', maxSize = null, destination = 'uploads/') => {
   return (req, res, next) => {
     const upload = multer({
       storage: storage(destination),
-      limits: { fileSize: maxSize || null },
+      limits: { fileSize: maxSize || DEFAULT_MAX_FILE_BYTES },
       fileFilter: (req, file, cb) => {
         checkFileType(file, extensions, cb);
       },
@@ -86,11 +90,20 @@ exports.imageUpload = (extensions = null, fieldName = 'files', maxSize = null, d
         return next();
       }
 
-      // Delete old files if new ones are uploaded
+      // Delete old files if new ones are uploaded.
+      // Only allow deletion of flat filenames inside `destination` — never traverse out.
       if (files.length > 0 && req.body.old_files) {
+        const destDirResolved = path.resolve(destination);
         const oldFiles = Array.isArray(req.body.old_files) ? req.body.old_files : [req.body.old_files];
         oldFiles.forEach(oldFile => {
-          fs.unlink(path.join(destination, oldFile), (error) => {
+          const baseName = path.basename(String(oldFile));
+          if (!baseName || baseName === '.' || baseName === '..') return;
+          const target = path.resolve(path.join(destDirResolved, baseName));
+          if (!target.startsWith(destDirResolved + path.sep)) {
+            console.error('Refusing to delete old file outside destination:', oldFile);
+            return;
+          }
+          fs.unlink(target, (error) => {
             if (error) {
               console.error(`Error deleting old file:`, error);
             } else {

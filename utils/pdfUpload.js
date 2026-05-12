@@ -68,17 +68,7 @@ const uploadSinglePDF = upload.any();
 
 // Middleware wrapper with error handling
 const handlePDFUpload = (req, res, next) => {
-  console.log('=== PDF UPLOAD MIDDLEWARE STARTED ===');
-  console.log('Request received at:', new Date().toISOString());
-  console.log('Original req.body:', req.body);
-  console.log('Original req.files:', req.files);
-
   uploadSinglePDF(req, res, (err) => {
-    console.log('🔄 MULTER: Upload processing complete');
-    console.log('📋 MULTER: Final req.body:', req.body);
-    console.log('📁 MULTER: Final req.files:', req.files);
-    console.log('📄 MULTER: Final req.file:', req.file);
-
     if (err) {
       console.error('PDF upload error:', err);
       

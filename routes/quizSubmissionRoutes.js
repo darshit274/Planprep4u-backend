@@ -2,63 +2,82 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { LeaderboardEntry, TestSeries, User, Test, TestSession, SubCategory, Category, Question, UserAnswer, sequelize } = require('../models');
+const { authToken } = require('../utils/AuthToken');
 
 /**
- * Simple quiz submission endpoint for frontend
+ * Quiz submission endpoint.
+ * Auth required. Correctness is computed server-side from Question.correct_answer;
+ * any client-supplied `isCorrect` field is ignored.
  */
-router.post('/submit', async (req, res) => {
+router.post('/submit', authToken, async (req, res) => {
     try {
         const {
-            userId,
-            testSeriesId, // This is actually the UUID from the frontend URL
-            categoryUuid, // ← ADDED: Actual test/category UUID for history
-            answers = [],
+            testSeriesId, // This is the category UUID (web flow) or test-series UUID (mobile flow)
+            categoryUuid,
+            answers: rawAnswers = [],
             totalTimeSpent = 120,
             markedForReviewCount = 0,
-            totalQuestions: frontendTotalQuestions // Get actual total questions from frontend
+            totalQuestions: frontendTotalQuestions
         } = req.body;
 
-        console.log('Quiz submission received:', {
-            userId,
-            testSeriesId,
-            categoryUuid, // ← ADDED for debugging
-            answersCount: answers.length,
-            totalTimeSpent,
-            markedForReviewCount,
-            frontendTotalQuestions
+        // userId always comes from the authenticated session — never from the request body
+        const userId = req.user.uuid;
+
+        // === Server-side correctness ===
+        // Fetch every question referenced by the submission (with its category for
+        // negative-marking config) in one query, then recompute isCorrect from the
+        // DB. Client-supplied isCorrect is ignored.
+        const referencedQuestionIds = [...new Set(
+            rawAnswers.map(a => a && a.questionId).filter(Boolean)
+        )];
+
+        const questionRows = referencedQuestionIds.length > 0
+            ? await Question.findAll({
+                where: { id: referencedQuestionIds, is_active: true },
+                attributes: ['id', 'correct_answer', 'marks', 'category_id'],
+                include: [{
+                    model: Category,
+                    as: 'category',
+                    attributes: ['id', 'negative_marking_enabled', 'negative_marks_per_wrong'],
+                }],
+            })
+            : [];
+        const questionMap = new Map(questionRows.map(q => [q.id, q]));
+
+        // Scoring rules (per client spec, change #4):
+        //   correct A–D            → +question.marks
+        //   wrong A–D              → -category.negative_marks_per_wrong (if enabled)
+        //   selectedOption === 'E' → 0 (explicit "skip — don't want to answer", no penalty)
+        //   selectedOption == null → -category.negative_marks_per_wrong (unattempted, treated like wrong)
+        const answers = rawAnswers.map(a => {
+            const q = a && a.questionId ? questionMap.get(a.questionId) : null;
+            const selectedOption = a ? a.selectedOption : null;
+            const isE = selectedOption === 'E';
+            const isAttempted = selectedOption !== null && selectedOption !== undefined && selectedOption !== '';
+            const isCorrect = !!(q && isAttempted && !isE && selectedOption === q.correct_answer);
+            return {
+                questionId: a ? a.questionId : null,
+                selectedOption,
+                isE,
+                isAttempted,
+                isCorrect,
+                timeSpent: a && typeof a.timeSpent === 'number' ? a.timeSpent : 0,
+                markedForReview: !!(a && a.markedForReview),
+            };
         });
 
-        // Calculate score from answers
-        // IMPORTANT: totalQuestions should be the ACTUAL total, not just answered questions
         const totalQuestions = frontendTotalQuestions || answers.length;
-        const answeredQuestions = answers.filter(answer => answer.selectedOption).length;
-        const correctAnswers = answers.filter(answer => answer.isCorrect).length;
-        // wrongAnswers = answered questions that are INCORRECT (not including unanswered)
+        const correctAnswers = answers.filter(a => a.isCorrect).length;
+        const eSkippedAnswers = answers.filter(a => a.isE).length;
+        // "Answered" counts only A–D selections; E is a deliberate skip, not an answer.
+        const answeredQuestions = answers.filter(a => a.isAttempted && !a.isE).length;
         const wrongAnswers = answeredQuestions - correctAnswers;
-        const unansweredQuestions = totalQuestions - answeredQuestions;
+        const unansweredQuestions = totalQuestions - answeredQuestions - eSkippedAnswers;
 
-        console.log('🧮 QUIZ SCORE CALCULATION:', {
-            totalQuestions,
-            answeredQuestions,
-            correctAnswers,
-            wrongAnswers,
-            unansweredQuestions
-        });
-
-        // Find or create user
-        let user = await User.findOne({ where: { uuid: userId } });
+        const user = await User.findOne({ where: { uuid: userId } });
         if (!user) {
-            // Create a temporary user for this submission
-            const uniqueId = Date.now() + Math.random().toString(36).substr(2, 9);
-            user = await User.create({
-                uuid: userId,
-                username: `QuizUser_${uniqueId}`,
-                email: `quiz-${uniqueId}@test.com`,
-                password: 'temp-password',
-                isEmailVerified: true,
-                role: 'student'
-            });
-            console.log(`Created user for quiz submission: ${user.uuid}`);
+            // Should be impossible after authToken — included as a defence-in-depth check.
+            return res.status(401).json({ success: false, message: 'User not found' });
         }
 
         // Handle both mobile app and web app flows:
@@ -171,122 +190,53 @@ router.post('/submit', async (req, res) => {
             negativeMarksType: typeof testSeries.negative_marks
         });
 
-        // Calculate score with actual marks per question
+        // === Score calculation (uses the bulk-fetched questionMap, no N+1) ===
         let obtainedMarks = 0;
         let totalMarks = 0;
-
-        // Calculate obtained marks and total marks from question data
-        for (const answer of answers) {
-            if (answer.questionId) {
-                const question = await Question.findByPk(answer.questionId, {
-                    attributes: ['id', 'marks']
-                });
-
-                if (question) {
-                    const questionMarks = question.marks || 1; // Default to 1 if not set
-                    totalMarks += questionMarks;
-
-                    if (answer.isCorrect) {
-                        obtainedMarks += questionMarks;
-                    }
-                }
-            }
-        }
-
-        // Fallback if no questions found (shouldn't happen)
-        if (totalMarks === 0) {
-            obtainedMarks = correctAnswers; // 1 mark per correct answer as fallback
-            totalMarks = totalQuestions; // 1 mark per question as fallback
-        }
-
         let negativeMarks = 0;
-        let finalScore = obtainedMarks;
-        // Accuracy/Percentage = (correct answers / attempted questions) × 100
-        let percentage = answeredQuestions > 0 ? Math.round((correctAnswers / answeredQuestions) * 100) : 0;
-
+        // Track the most recently observed per-wrong rate so the response can echo
+        // it back (kept for backwards-compatibility with the old payload).
         let negative_marks_per_wrong = 0;
-        // NEW: Apply category-level negative marking logic
-        if (wrongAnswers > 0) {
-            // Group wrong answers by category to apply different negative marking rules
-            const wrongAnswersByCategory = {};
 
-            for (const answer of answers) {
-                if (!answer.isCorrect && answer.questionId && answer.selectedOption) {
-                    // Get the question and its category
-                    const question = await Question.findByPk(answer.questionId, {
-                        include: [{
-                            model: Category,
-                            as: 'category',
-                            attributes: ['id', 'negative_marking_enabled', 'negative_marks_per_wrong']
-                        }]
-                    });
-
-                    if (question && question.category) {
-                        const categoryId = question.category.id;
-                        if (!wrongAnswersByCategory[categoryId]) {
-                            wrongAnswersByCategory[categoryId] = {
-                                count: 0,
-                                negative_marking_enabled: question.category.negative_marking_enabled,
-                                negative_marks_per_wrong: question.category.negative_marks_per_wrong || 0.25
-                            };
-                        }
-                        wrongAnswersByCategory[categoryId].count++;
-                        negative_marks_per_wrong = question.category.negative_marks_per_wrong;
-                    }
-                }
-            }
-
-            // Calculate negative marks per category
-            let totalNegativeMarks = 0;
-            const categoryNegativeMarks = {};
-
-            for (const [categoryId, categoryData] of Object.entries(wrongAnswersByCategory)) {
-                if (categoryData.negative_marking_enabled) {
-                    const categoryNegativeMarksValue = categoryData.count * categoryData.negative_marks_per_wrong;
-                    categoryNegativeMarks[categoryId] = categoryNegativeMarksValue;
-                    totalNegativeMarks += categoryNegativeMarksValue;
-                }
-            }
-
-            negativeMarks = totalNegativeMarks;
-            finalScore = obtainedMarks - negativeMarks;
-            // Percentage stays the same - it's based on correct/attempted, not final score
-            // percentage is already calculated above as (correctAnswers / answeredQuestions) × 100
-
-            console.log('✅ CATEGORY-LEVEL NEGATIVE MARKING APPLIED:', {
-                obtainedMarks,
-                wrongAnswersByCategory,
-                categoryNegativeMarks,
-                totalNegativeMarks: negativeMarks,
-                finalScore,
-                percentage: percentage + '%'
-            });
-        } else {
-            console.log('❌ NO WRONG ANSWERS - NO NEGATIVE MARKING NEEDED:', {
-                obtainedMarks,
-                finalScore,
-                percentage: percentage + '%'
-            });
-        }
-
-        const score = finalScore;
-
-        // Calculate attempted marks for accuracy calculation
-        let attemptedMarks = 0;
         for (const answer of answers) {
-            if (answer.questionId) {
-                const question = await Question.findByPk(answer.questionId, {
-                    attributes: ['id', 'marks']
-                });
-                if (question) {
-                    attemptedMarks += question.marks || 1;
-                }
+            if (!answer.questionId) continue;
+            const q = questionMap.get(answer.questionId);
+            if (!q) continue;
+
+            const questionMarks = q.marks || 1;
+            totalMarks += questionMarks;
+
+            if (answer.isCorrect) {
+                obtainedMarks += questionMarks;
+                continue;
+            }
+
+            // E (deliberate skip) is neutral — no positive, no penalty.
+            if (answer.isE) continue;
+
+            // Wrong A–D, or completely unattempted: penalty if this question's
+            // category has negative marking enabled. Same rate either way.
+            const cat = q.category;
+            if (cat && cat.negative_marking_enabled) {
+                const rate = parseFloat(cat.negative_marks_per_wrong) || 0;
+                negativeMarks += rate;
+                negative_marks_per_wrong = rate;
             }
         }
 
-        // Calculate accuracy: (correct answers / attempted questions) × 100
-        // This is the same as percentage - both represent accuracy
-        const accuracy = answeredQuestions > 0 ? Math.round((correctAnswers / answeredQuestions) * 100) : 0;
+        // Fallback if no questions resolved (shouldn't happen): assume 1 mark each
+        if (totalMarks === 0) {
+            obtainedMarks = correctAnswers;
+            totalMarks = totalQuestions;
+        }
+
+        const finalScore = obtainedMarks - negativeMarks;
+        const score = finalScore;
+        // Accuracy = correct / answered (A–D), unchanged from before.
+        const percentage = answeredQuestions > 0
+            ? Math.round((correctAnswers / answeredQuestions) * 100)
+            : 0;
+        const accuracy = percentage;
 
         // Use the existing category (already fetched above with testSeries)
         // No need to create fake categories anymore!
@@ -419,6 +369,7 @@ router.post('/submit', async (req, res) => {
                 correctAnswers: correctAnswers,
                 wrongAnswers: wrongAnswers,
                 unansweredQuestions: unansweredQuestions,
+                eSkippedAnswers: eSkippedAnswers, // count of "Option E" deliberate skips
                 percentage: percentage,
                 // Alternative field names in case frontend uses different keys
                 finalPercentage: percentage,
@@ -460,151 +411,6 @@ router.post('/submit', async (req, res) => {
             error: error.message,
             details: error.errors ? error.errors.map(e => e.message) : []
         });
-    }
-});
-
-/**
- * Clear contaminated data for a test series
- */
-router.delete('/clear-series/:testSeriesId', async (req, res) => {
-    try {
-        const { testSeriesId } = req.params;
-
-        console.log(`Clearing all data for test series: ${testSeriesId}`);
-
-        // Find test series
-        const testSeries = await TestSeries.findOne({ where: { uuid: testSeriesId } });
-        if (!testSeries) {
-            return res.json({ success: false, message: 'Test series not found' });
-        }
-
-        // Find all related tests and categories
-        const categories = await Category.findAll({ where: { test_series_id: testSeries.id } });
-        const categoryIds = categories.map(c => c.id);
-
-        const subCategories = await SubCategory.findAll({ where: { category_id: categoryIds } });
-        const subCategoryIds = subCategories.map(sc => sc.id);
-
-        const tests = await Test.findAll({ where: { sub_category_id: subCategoryIds } });
-        const testIds = tests.map(t => t.id);
-
-        // Delete all related data
-        const deletedLeaderboard = await LeaderboardEntry.destroy({ where: { test_id: testIds } });
-        const deletedSessions = await TestSession.destroy({ where: { test_id: testIds } });
-        const deletedTests = await Test.destroy({ where: { id: testIds } });
-        const deletedSubCategories = await SubCategory.destroy({ where: { id: subCategoryIds } });
-        const deletedCategories = await Category.destroy({ where: { id: categoryIds } });
-        const deletedTestSeries = await TestSeries.destroy({ where: { id: testSeries.id } });
-
-        console.log(`Deleted: ${deletedLeaderboard} leaderboard entries, ${deletedSessions} sessions, ${deletedTests} tests`);
-
-        res.json({
-            success: true,
-            message: 'Test series data cleared successfully',
-            deleted: {
-                leaderboardEntries: deletedLeaderboard,
-                testSessions: deletedSessions,
-                tests: deletedTests,
-                subCategories: deletedSubCategories,
-                categories: deletedCategories,
-                testSeries: deletedTestSeries
-            }
-        });
-
-    } catch (error) {
-        console.error('Error clearing test series:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-/**
- * Get latest quiz result for a user and test series
- */
-router.get('/latest-result/:userId/:testSeriesId', async (req, res) => {
-    try {
-        const { userId, testSeriesId } = req.params;
-
-        console.log(`🔍 Getting latest result for user ${userId} in test series ${testSeriesId}`);
-
-        // Find the latest leaderboard entry for this user and test series
-        const latestEntry = await LeaderboardEntry.findOne({
-            where: {
-                user_id: userId,
-                test_series_id: testSeriesId
-            },
-            order: [['completion_date', 'DESC']],
-            include: [{
-                model: TestSeries,
-                as: 'testSeries',
-                attributes: ['name', 'has_negative_marking', 'negative_marks']
-            }]
-        });
-
-        if (!latestEntry) {
-            return res.status(404).json({
-                success: false,
-                message: 'No quiz results found for this user and test series'
-            });
-        }
-
-        console.log(`✅ Found latest result: ${latestEntry.percentage}% (entry ID: ${latestEntry.id})`);
-
-        res.json({
-            success: true,
-            message: 'Latest quiz result retrieved successfully',
-            data: {
-                leaderboardEntryId: latestEntry.id,
-                score: parseFloat(latestEntry.score),
-                totalQuestions: latestEntry.total_questions,
-                correctAnswers: latestEntry.correct_answers,
-                wrongAnswers: latestEntry.wrong_answers,
-                percentage: latestEntry.percentage,
-                completionTime: latestEntry.completion_date,
-                negativeMarkingEnabled: latestEntry.testSeries?.has_negative_marking || false,
-                timestamp: Date.now()
-            }
-        });
-
-    } catch (error) {
-        console.error('Get latest result error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to retrieve latest quiz result',
-            error: error.message
-        });
-    }
-});
-
-/**
- * Nuclear option - clear ALL old contaminated leaderboard data
- */
-router.post('/nuclear-clean', async (req, res) => {
-    try {
-        console.log('NUCLEAR CLEAN: Clearing all old leaderboard data...');
-
-        // Delete all leaderboard entries that are NOT from today's submissions
-        const today = new Date();
-        today.setHours(11, 0, 0, 0); // 11 AM today
-
-        const deletedEntries = await LeaderboardEntry.destroy({
-            where: {
-                completion_date: {
-                    [require('sequelize').Op.lt]: today
-                }
-            }
-        });
-
-        console.log(`NUCLEAR CLEAN: Deleted ${deletedEntries} old leaderboard entries`);
-
-        res.json({
-            success: true,
-            message: `Nuclear clean completed - deleted ${deletedEntries} old entries`,
-            deletedCount: deletedEntries
-        });
-
-    } catch (error) {
-        console.error('Nuclear clean error:', error);
-        res.status(500).json({ success: false, error: error.message });
     }
 });
 

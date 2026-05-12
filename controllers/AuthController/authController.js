@@ -36,23 +36,49 @@ exports.register = async (req, res, next) => {
         const otp = generate4DigitOTP();
         const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
-        // ✅ FIX: Generate id manually (trigger is broken due to table self-reference)
-        const maxIdResult = await User.findOne({
-            attributes: [[sequelize.fn('MAX', sequelize.col('id')), 'maxId']],
-            raw: true
-        });
-        const nextId = (maxIdResult?.maxId || 0) + 1;
-
-        const newUser = await User.create({
-            id: nextId, // ✅ FIX: Explicitly provide id
-            username: finalUsername,
-            email,
-            phone: finalPhone,
-            password: hashedPassword,
-            otp,
-            otpExpiry,
-            isEmailVerified: false
-        });
+        // The `id` column is INTEGER UNIQUE but not auto-increment (a DB trigger was
+        // intended to fill it but is broken). MAX(id)+1 has a race between concurrent
+        // registrations, so we retry on a unique-constraint conflict — each retry
+        // re-reads MAX and tries again. The right long-term fix is a migration to make
+        // `id` AUTO_INCREMENT.
+        const MAX_ID_ATTEMPTS = 5;
+        let newUser;
+        let lastError;
+        for (let attempt = 0; attempt < MAX_ID_ATTEMPTS; attempt++) {
+            const maxIdResult = await User.findOne({
+                attributes: [[sequelize.fn('MAX', sequelize.col('id')), 'maxId']],
+                raw: true
+            });
+            const nextId = (maxIdResult?.maxId || 0) + 1 + attempt;
+            try {
+                newUser = await User.create({
+                    id: nextId,
+                    username: finalUsername,
+                    email,
+                    phone: finalPhone,
+                    password: hashedPassword,
+                    otp,
+                    otpExpiry,
+                    isEmailVerified: false
+                });
+                break;
+            } catch (e) {
+                lastError = e;
+                if (e && e.name === 'SequelizeUniqueConstraintError') {
+                    // Could be id race (retry) or email/username already exists (don't retry)
+                    const fields = e.fields || {};
+                    if (fields.email || fields.username) {
+                        return next(new ErrorHandler('User already exists with this email or username', 400));
+                    }
+                    continue;
+                }
+                throw e;
+            }
+        }
+        if (!newUser) {
+            console.error('Registration: exhausted ID retry attempts', lastError);
+            return next(new ErrorHandler('Could not allocate user ID, please retry', 500));
+        }
 
         // Generate JWT token
         const payload = {
@@ -273,28 +299,45 @@ exports.forgotPassword = async (req, res, next) => {
 
 exports.resetPassword = async (req, res, next) => {
     try {
-        const { email, newPassword } = req.body;   
-        // Find user by email
+        const { email, otp, newPassword } = req.body;
+
+        if (!email || !otp || !newPassword) {
+            return next(new ErrorHandler('Email, OTP, and new password are required', 400));
+        }
+
         const user = await User.findOne({ where: { email } });
         if (!user) {
             return next(new ErrorHandler('User not found with this email!', 404));
         }
-        
-        // Hash the new password
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        // Update user's password
-        user.password = hashedPassword;
 
+        // OTP must have been issued by forgotPassword and not yet consumed
+        if (!user.otp || !user.otpExpiry) {
+            return next(new ErrorHandler('No password-reset request found. Please request a new OTP.', 400));
+        }
+
+        if (new Date() > user.otpExpiry) {
+            return next(new ErrorHandler('OTP has expired. Please request a new one.', 400));
+        }
+
+        if (user.otp !== parseInt(otp)) {
+            return next(new ErrorHandler('Invalid OTP', 401));
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        // Consume the OTP so it can't be replayed and invalidate any existing session
+        user.otp = null;
+        user.otpExpiry = null;
+        user.current_session_id = null;
         await user.save();
+
         res.status(200).json({
             success: true,
             message: 'Password reset successfully',
         });
     } catch (err) {
-        const error = new ErrorHandler(
-            'Error while resetting password', 500
-        );
-        return next(error);
+        console.error('Reset password error:', err);
+        return next(new ErrorHandler('Error while resetting password', 500));
     }
 };
 

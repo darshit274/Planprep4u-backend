@@ -112,6 +112,16 @@ module.exports = (sequelize, DataTypes) => {
     updatedAt: 'updated_at'
   });
 
+  // Strip Gujarati fields from API output. Columns remain in the DB so existing
+  // data isn't lost; only client-facing serialisation hides them.
+  Question.prototype.toJSON = function () {
+    const v = { ...this.get({ plain: true }) };
+    for (const k of Object.keys(v)) {
+      if (k.endsWith('_gujarati')) delete v[k];
+    }
+    return v;
+  };
+
   // Define associations
   Question.associate = function(models) {
     // Test association

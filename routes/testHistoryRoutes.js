@@ -36,6 +36,90 @@ const requireAuth = async (req, res, next) => {
 };
 
 /**
+ * Lightweight per-category attempt summary for the current user.
+ * Used by the test cards on TestSeriesDetailPage / CategoryDetailPage to render
+ * the "Attempted N times — last score X%" badge and the retake warning modal.
+ *
+ * GET /api/test-history/by-category-summary
+ * Returns: { success, data: { [categoryUuid]: { attempts, lastScore, lastSessionId, lastDate } } }
+ */
+router.get('/by-category-summary', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.uuid;
+
+        const sessions = await TestSession.findAll({
+            where: { user_id: userId, status: 'completed', is_completed: true },
+            attributes: ['id', 'completed_at', 'percentage', 'final_score', 'session_data', 'test_id'],
+            order: [['completed_at', 'DESC']],
+        });
+
+        // Cache Test -> derived UUIDs for legacy sessions so we don't re-query
+        // for every session pointing at the same Test row.
+        const testIdToFallback = {};
+        async function resolveLegacyUuids(testId) {
+            if (!testId) return null;
+            if (testIdToFallback[testId] !== undefined) return testIdToFallback[testId];
+            const oldTest = await Test.findByPk(testId, {
+                include: [{
+                    model: SubCategory,
+                    as: 'subCategory',
+                    include: [{
+                        model: Category,
+                        as: 'category',
+                        attributes: ['uuid'],
+                        include: [{ model: TestSeries, as: 'testSeries', attributes: ['uuid'] }],
+                    }],
+                }],
+            });
+            const out = {
+                categoryUuid: oldTest?.subCategory?.category?.uuid || null,
+                seriesUuid: oldTest?.subCategory?.category?.testSeries?.uuid || null,
+            };
+            testIdToFallback[testId] = out;
+            return out;
+        }
+
+        const summary = {};
+        const bump = (key, s) => {
+            if (!key) return;
+            if (!summary[key]) {
+                summary[key] = {
+                    attempts: 0,
+                    lastScore: parseFloat(s.percentage) || 0,
+                    lastFinalScore: parseFloat(s.final_score) || 0,
+                    lastSessionId: s.id,
+                    lastDate: s.completed_at,
+                };
+            }
+            summary[key].attempts += 1;
+        };
+
+        for (const s of sessions) {
+            // Primary key: session_data.category_uuid written by the new quiz
+            // submit endpoint. Pre-existing legacy sessions don't have this.
+            const categoryUuid = s.session_data?.category_uuid;
+            if (categoryUuid) {
+                bump(categoryUuid, s);
+                continue;
+            }
+            // Legacy fallback — mirror the logic the test-history list endpoint
+            // already uses so the UUIDs we surface line up with what the test
+            // series / category pages show.
+            const fallback = await resolveLegacyUuids(s.test_id);
+            if (fallback?.categoryUuid) bump(fallback.categoryUuid, s);
+            if (fallback?.seriesUuid && fallback.seriesUuid !== fallback.categoryUuid) {
+                bump(fallback.seriesUuid, s);
+            }
+        }
+
+        res.json({ success: true, data: summary });
+    } catch (err) {
+        console.error('by-category-summary error:', err);
+        res.status(500).json({ success: false, message: 'Failed to load attempt summary' });
+    }
+});
+
+/**
  * Get user test history list - GROUPED BY TEST
  * GET /api/test-history
  * Query params: ?page=1&limit=10&sort=date_desc

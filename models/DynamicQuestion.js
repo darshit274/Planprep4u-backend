@@ -161,6 +161,15 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 
+  // Strip Gujarati fields from API output (columns remain in DB).
+  DynamicQuestion.prototype.toJSON = function () {
+    const v = { ...this.get({ plain: true }) };
+    for (const k of Object.keys(v)) {
+      if (k.endsWith('_gujarati')) delete v[k];
+    }
+    return v;
+  };
+
   DynamicQuestion.associate = function(models) {
     DynamicQuestion.belongsTo(models.DynamicCategory, {
       foreignKey: 'category_id',

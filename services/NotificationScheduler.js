@@ -1,5 +1,6 @@
 const NotificationService = require('./NotificationService');
 const NotificationTriggers = require('./NotificationTriggers');
+const { reconcileSubscriptionStatuses } = require('./SubscriptionExpiryService');
 const cron = require('node-cron');
 const { User, Test, TestSeries, subscription: Subscription } = require('../models');
 const { Op } = require('sequelize');
@@ -43,8 +44,26 @@ class NotificationScheduler {
       this.sendWeeklyContentSummary();
     });
 
+    // Daily 1:15 AM: reconcile user.subscription_status against expiry_date
+    // so expired users no longer show 'active' in dashboards.
+    cron.schedule('15 1 * * *', () => {
+      this.reconcileSubscriptions();
+    });
+
     this.isInitialized = true;
     console.log('✅ Notification Scheduler initialized successfully');
+  }
+
+  /**
+   * Reconcile each user's subscription_status flag against current expiry_date.
+   */
+  async reconcileSubscriptions() {
+    try {
+      const result = await reconcileSubscriptionStatuses();
+      console.log(`🧾 Subscription reconcile: ${result.expired} expired, ${result.activated} re-activated, ${result.scanned} scanned`);
+    } catch (error) {
+      console.error('❌ Error reconciling subscription statuses:', error);
+    }
   }
 
   /**

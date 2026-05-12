@@ -18,15 +18,16 @@ const WebPDFRoutes = require("./webPDFRoutes");
 const LeaderboardRoutes = require("./leaderboardRoutes");
 const PaymentRoutes = require("./PaymentRoutes/paymentRoutes");
 const { router: SubscriptionAccessRoutes } = require("./SubscriptionRoutes/subscriptionAccess");
-const DebugRoutes = require("./debug");
-const TestSimulationRoutes = require("./testSimulation");
 const QuizSubmissionRoutes = require("./quizSubmissionRoutes");
 const TestHistoryRoutes = require("./testHistoryRoutes");
-const DebugLeaderboardRoutes = require("./debugLeaderboard");
-const SampleDataRoutes = require("./sampleDataRoutes");
+// Debug / testSimulation / sampleData / debugLeaderboard routes are intentionally
+// not imported here. They expose unauthenticated DB-state and destructive endpoints
+// (e.g. nuclear-clean, clear-series). If you need them in development, mount them
+// behind a NODE_ENV !== 'production' guard and adminAuth.
 const UploadRoutes = require("./uploadRoutes");
 const QuestionReportRoutes = require("./questionReportRoutes");
 const ContactQueryRoutes = require("./contactQueryRoutes");
+const SettingsRoutes = require("./settingsRoutes");
 
 router.use("/users", UserRoutes);
 router.use("/admin", AdminRoutes);
@@ -44,18 +45,15 @@ router.use("/tests", TestSeriesRoutes); // Test series APIs (web app compatibili
 router.use("/leaderboard", LeaderboardRoutes); // Leaderboard APIs
 router.use("/payments", PaymentRoutes); // Razorpay payment gateway APIs
 router.use("/subscription-access", SubscriptionAccessRoutes); // Subscription access control APIs
-router.use("/debug", DebugRoutes); // Debug APIs for checking database state
-router.use("/test-simulation", TestSimulationRoutes); // Temporary test simulation APIs for testing
-router.use("/quiz", QuizSubmissionRoutes); // Simple quiz submission APIs for frontend
+router.use("/quiz", QuizSubmissionRoutes); // Quiz submission APIs (auth enforced inside)
 try {
   router.use("/test-history", TestHistoryRoutes); // Test history APIs for viewing past test results
   console.log('✅ Test History Routes registered successfully');
 } catch (error) {
   console.error('❌ Error registering Test History Routes:', error);
 }
-router.use("/debug-leaderboard", DebugLeaderboardRoutes); // Debug leaderboard queries
-router.use("/sample-data", SampleDataRoutes); // Temporary sample data creation routes
 router.use("/contact", ContactQueryRoutes); // Contact query APIs - public submission & admin management
+router.use("/settings", SettingsRoutes); // Public + admin platform settings (intro video, telegram URL, etc.)
 router.use("/", QuestionReportRoutes); // Question report APIs for users and admins
 router.use("/", StudentDynamicTestRoutes); // NEW: Student-facing dynamic hierarchy APIs
 router.use("/", StudentTestRoutes); // OLD: Student-facing test APIs (kept for backwards compatibility)
