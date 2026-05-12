@@ -30,18 +30,7 @@ const envAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .filter(Boolean);
 const allowedOrigins = new Set([...defaultAllowedOrigins, ...envAllowedOrigins]);
 
-app.use(cors({
-  origin(origin, callback) {
-    // Allow same-origin / non-browser tools (curl, mobile apps) which omit Origin.
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.has(origin)) return callback(null, true);
-    return callback(new Error(`Origin ${origin} not allowed by CORS`));
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
+app.use(cors({}));
 
 // Trust proxy for devtunnels/ngrok
 app.set('trust proxy', true);
