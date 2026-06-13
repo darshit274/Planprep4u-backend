@@ -432,14 +432,14 @@ router.get('/test/:testId/attempts', requireAuth, async (req, res) => {
                 include: [{
                     model: Test,
                     as: 'test',
-                    attributes: ['id', 'title', 'uuid']
+                    attributes: ['id', 'title']
                 }],
                 order: [['completed_at', 'DESC']]
             });
 
             if (sessions.length > 0 && sessions[0].test) {
                 testName = sessions[0].test.title;
-                testUuid = sessions[0].test.uuid;
+                testUuid = sessions[0].test.id;
             }
         }
 
@@ -528,7 +528,7 @@ router.get('/:sessionId', requireAuth, async (req, res) => {
             include: [{
                 model: Test,
                 as: 'test',
-                attributes: ['id', 'title', 'uuid']
+                attributes: ['id', 'title']
             }]
         });
 

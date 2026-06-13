@@ -1,19 +1,13 @@
 module.exports = (sequelize, DataTypes) => {
   const Test = sequelize.define('Test', {
     id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
-    uuid: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      allowNull: false,
-      unique: true
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
     },
     sub_category_id: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: true
     },
     title: {
       type: DataTypes.STRING,
@@ -134,7 +128,7 @@ module.exports = (sequelize, DataTypes) => {
       comment: 'Display order for sorting tests'
     }
   }, {
-    tableName: 'tests',
+    tableName: 'test',
     underscored: true,
     timestamps: true
   });

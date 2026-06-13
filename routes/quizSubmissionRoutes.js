@@ -310,13 +310,12 @@ router.post('/submit', async (req, res) => {
         // Create a test session record (required for LeaderboardEntry and history)
         // Use the category name for better identification
         const test = await Test.create({
-            uuid: uuidv4(), // Use proper UUID format
-            title: category.name, // Use actual category name instead of generic "Quiz Test"
-            subtitle: category.description || 'Quiz submission',
+            title: category.name,
             instructions: category.instructions || 'Quiz taken through frontend',
             duration_minutes: category.test_duration_minutes || Math.ceil(totalTimeSpent / 60),
             total_questions: totalQuestions,
-            passing_marks: Math.ceil(totalQuestions * 0.6), // 60% passing
+            total_marks: totalQuestions,
+            passing_marks: Math.ceil(totalQuestions * 0.6),
             negative_marking_enabled: category.negative_marking_enabled || negativeMarks > 0,
             negative_marks_per_wrong: category.negative_marks_per_wrong || 0,
             is_active: true,

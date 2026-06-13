@@ -40,7 +40,7 @@ module.exports = {
         allowNull: true
       },
       viewed_by: {
-        type: Sequelize.CHAR(36),
+        type: 'CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin',
         allowNull: true,
         references: {
           model: 'admins',
@@ -54,7 +54,7 @@ module.exports = {
         allowNull: true
       },
       solved_by: {
-        type: Sequelize.CHAR(36),
+        type: 'CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin',
         allowNull: true,
         references: {
           model: 'admins',

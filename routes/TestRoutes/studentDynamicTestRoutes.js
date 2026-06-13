@@ -92,7 +92,6 @@ async function getQuestionsRecursive(categoryId, shuffle = false) {
       ],
     attributes: [
       "id",
-      "uuid",
       "question_text",
       "question_text_gujarati",
       "option_a",
@@ -112,7 +111,7 @@ async function getQuestionsRecursive(categoryId, shuffle = false) {
     ],
   });
 
-  return questions.map((q) => q.toJSON());
+  return questions.map((q) => ({ ...q.toJSON(), uuid: q.id }));
 }
 
 // Middleware for optional authentication
@@ -589,7 +588,6 @@ router.get("/dynamic/categories/:uuid", optionalAuth, async (req, res) => {
         ],
         attributes: [
           "id",
-          "uuid",
           "question_text",
           "question_text_gujarati",
           "option_a",
@@ -611,7 +609,7 @@ router.get("/dynamic/categories/:uuid", optionalAuth, async (req, res) => {
 
       if (questions.length > 0) {
         content_type = "questions";
-        content = questions.map((q) => q.toJSON());
+        content = questions.map((q) => ({ ...q.toJSON(), uuid: q.id }));
       }
     }
 

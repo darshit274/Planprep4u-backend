@@ -11,7 +11,7 @@ module.exports = {
     });
 
     // Add index for better performance when ordering
-    await queryInterface.addIndex('questions', ['category_id', 'question_order'], {
+    await queryInterface.addIndex('questions', ['question_order'], {
       name: 'idx_questions_category_order'
     });
   },

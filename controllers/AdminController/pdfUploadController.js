@@ -11,7 +11,7 @@ const {
   validatePDFFile 
 } = require('../../utils/pdfUpload');
 
-// Get all PDF categories
+// Get all PDF categories (flat list with hierarchy info; frontend builds the tree)
 exports.getPdfCategories = async (req, res, next) => {
   try {
     const categories = await PdfCategory.findAll({
@@ -21,14 +21,23 @@ exports.getPdfCategories = async (req, res, next) => {
         model: Pdfs,
         as: 'pdfs',
         attributes: ['id'],
+        where: { is_active: true },
         required: false
       }]
     });
 
-    // Add PDF count to each category
+    // Add PDF count and children count to each category
+    const childCounts = {};
+    categories.forEach(cat => {
+      if (cat.parent_category_id) {
+        childCounts[cat.parent_category_id] = (childCounts[cat.parent_category_id] || 0) + 1;
+      }
+    });
+
     const categoriesWithCount = categories.map(category => {
       const categoryData = category.toJSON();
       categoryData.pdf_count = categoryData.pdfs?.length || 0;
+      categoryData.children_count = childCounts[categoryData.id] || 0;
       delete categoryData.pdfs;
       return categoryData;
     });
@@ -44,26 +53,34 @@ exports.getPdfCategories = async (req, res, next) => {
   }
 };
 
-// Create PDF category
+// Create PDF category (optionally nested via parent_category_id)
 exports.createPdfCategory = async (req, res, next) => {
   try {
-    const { name, description, icon, color, sort_order } = req.body;
+    const { name, description, icon, color, sort_order, parent_category_id } = req.body;
 
     if (!name) {
       return next(new ErrorHandler('Category name is required', 400));
     }
 
-    // Generate slug from name
-    const slug = name.toLowerCase()
+    // Validate parent if provided
+    if (parent_category_id) {
+      const parent = await PdfCategory.findByPk(parent_category_id);
+      if (!parent || !parent.is_active) {
+        return next(new ErrorHandler('Parent category not found', 400));
+      }
+    }
+
+    // Generate slug from name; suffix with timestamp on collision so the same
+    // name can exist under different parents
+    let slug = name.toLowerCase()
       .replace(/[^a-z0-9 -]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
-      .trim('-');
+      .replace(/^-+|-+$/g, '');
 
-    // Check if slug already exists
     const existingCategory = await PdfCategory.findOne({ where: { slug } });
     if (existingCategory) {
-      return next(new ErrorHandler('Category with this name already exists', 400));
+      slug = `${slug}-${Date.now().toString(36)}`;
     }
 
     const category = await PdfCategory.create({
@@ -72,7 +89,8 @@ exports.createPdfCategory = async (req, res, next) => {
       description,
       icon: icon || 'Folder',
       color: color || '#3B82F6',
-      sort_order: sort_order || 0
+      sort_order: sort_order || 0,
+      parent_category_id: parent_category_id || null
     });
 
     res.status(201).json({
@@ -83,6 +101,74 @@ exports.createPdfCategory = async (req, res, next) => {
   } catch (err) {
     console.error('Create PDF category error:', err);
     const error = new ErrorHandler('Failed to create PDF category', 500);
+    return next(error);
+  }
+};
+
+// Update PDF category
+exports.updatePdfCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, description, icon, color, sort_order } = req.body;
+
+    const category = await PdfCategory.findByPk(id);
+    if (!category || !category.is_active) {
+      return next(new ErrorHandler('Category not found', 404));
+    }
+
+    await category.update({
+      ...(name && { name }),
+      ...(description !== undefined && { description }),
+      ...(icon && { icon }),
+      ...(color && { color }),
+      ...(sort_order !== undefined && { sort_order })
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'PDF category updated successfully',
+      data: category
+    });
+  } catch (err) {
+    console.error('Update PDF category error:', err);
+    const error = new ErrorHandler('Failed to update PDF category', 500);
+    return next(error);
+  }
+};
+
+// Delete PDF category (soft delete; blocked while it still has content)
+exports.deletePdfCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const category = await PdfCategory.findByPk(id);
+    if (!category || !category.is_active) {
+      return next(new ErrorHandler('Category not found', 404));
+    }
+
+    const childCount = await PdfCategory.count({
+      where: { parent_category_id: id, is_active: true }
+    });
+    if (childCount > 0) {
+      return next(new ErrorHandler('Cannot delete: this category contains sub-categories. Delete them first.', 400));
+    }
+
+    const pdfCount = await Pdfs.count({
+      where: { category_id: id, is_active: true }
+    });
+    if (pdfCount > 0) {
+      return next(new ErrorHandler('Cannot delete: this category contains PDFs. Move or delete them first.', 400));
+    }
+
+    await category.update({ is_active: false });
+
+    res.status(200).json({
+      success: true,
+      message: 'PDF category deleted successfully'
+    });
+  } catch (err) {
+    console.error('Delete PDF category error:', err);
+    const error = new ErrorHandler('Failed to delete PDF category', 500);
     return next(error);
   }
 };

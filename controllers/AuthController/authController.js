@@ -94,9 +94,13 @@ exports.register = async (req, res, next) => {
             return next(new ErrorHandler(500, "Failed to send Verification Email"));
         }
 
-        const tokenPayload = { 
+        const sessionId = require('crypto').randomUUID();
+        await newUser.update({ current_session_id: sessionId });
+
+        const tokenPayload = {
             uuid: newUser.uuid,
-            email: newUser.email 
+            email: newUser.email,
+            sessionId
         };
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '24h' });
         res.status(201).json({

@@ -7,6 +7,8 @@ const { handlePDFUpload } = require('../../utils/pdfUpload');
 // PDF Categories routes
 router.get('/categories', adminAuth, pdfUploadController.getPdfCategories);
 router.post('/categories', adminAuth, pdfUploadController.createPdfCategory);
+router.put('/categories/:id', adminAuth, pdfUploadController.updatePdfCategory);
+router.delete('/categories/:id', adminAuth, pdfUploadController.deletePdfCategory);
 
 // PDF Upload routes
 router.post('/upload', (req, res, next) => {
