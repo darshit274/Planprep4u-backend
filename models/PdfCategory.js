@@ -36,6 +36,11 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0,
       comment: 'Display order for categories'
     },
+    parent_category_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Parent category for nested hierarchy (null = root level)'
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
@@ -57,9 +62,19 @@ module.exports = (sequelize, DataTypes) => {
 
   // Define associations
   PdfCategory.associate = function(models) {
-    PdfCategory.hasMany(models.Pdfs, { 
-      foreignKey: 'category_id', 
-      as: 'pdfs' 
+    PdfCategory.hasMany(models.Pdfs, {
+      foreignKey: 'category_id',
+      as: 'pdfs'
+    });
+
+    // Self-referencing hierarchy (mirrors Category in course management)
+    PdfCategory.belongsTo(models.PdfCategory, {
+      foreignKey: 'parent_category_id',
+      as: 'parentCategory'
+    });
+    PdfCategory.hasMany(models.PdfCategory, {
+      foreignKey: 'parent_category_id',
+      as: 'childCategories'
     });
   };
 

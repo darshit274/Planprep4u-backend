@@ -9,7 +9,7 @@ module.exports = {
         allowNull: false
       },
       user_id: {
-        type: Sequelize.CHAR(36),
+        type: 'CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin',
         allowNull: false,
         references: {
           model: 'users',
@@ -19,10 +19,10 @@ module.exports = {
         onUpdate: 'CASCADE'
       },
       test_id: {
-        type: Sequelize.INTEGER,
+        type: 'CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin',
         allowNull: false,
         references: {
-          model: 'tests',
+          model: 'test',
           key: 'id'
         },
         onDelete: 'CASCADE',

@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     question_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: 'questions',
@@ -22,7 +22,8 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     selected_option: {
-      type: DataTypes.ENUM('A', 'B', 'C', 'D'),
+      // 'E' is the deliberate "skip — don't want to attempt" choice
+      type: DataTypes.ENUM('A', 'B', 'C', 'D', 'E'),
       allowNull: true
     },
     is_correct: {

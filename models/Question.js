@@ -1,15 +1,9 @@
 module.exports = (sequelize, DataTypes) => {
   const Question = sequelize.define('Question', {
     id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
-    uuid: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      unique: true,
-      allowNull: false
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
     },
     
     // Association

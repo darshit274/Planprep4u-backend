@@ -22,7 +22,7 @@ module.exports = {
 
       // Foreign Keys
       question_id: {
-        type: Sequelize.INTEGER,
+        type: 'CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin',
         allowNull: false,
         references: {
           model: 'questions',

@@ -48,9 +48,9 @@ class QuestionReportController {
         });
       }
 
-      // Check if question exists
+      // Check if question exists (questions.id is a UUID string)
       const question = await Question.findOne({
-        where: { id: parseInt(questionId) }
+        where: { id: questionId }
       });
 
       if (!question) {
@@ -80,7 +80,7 @@ class QuestionReportController {
 
       // Create the report
       const report = await QuestionReport.create({
-        question_id: parseInt(questionId),
+        question_id: questionId,
         user_id: userId,
         report_type: reportType,
         report_text: reportText ? reportText.trim() : null,
@@ -93,7 +93,7 @@ class QuestionReportController {
         message: 'Thank you for your feedback. Our team will review it shortly.',
         data: {
           reportId: report.uuid,
-          questionId: parseInt(questionId),
+          questionId: questionId,
           reportType: report.report_type,
           status: report.status,
           createdAt: report.created_at
@@ -149,12 +149,12 @@ class QuestionReportController {
             model: Question,
             as: 'question',
             required: true,
-            attributes: ['id', 'uuid', 'question_text', 'correct_answer'],
+            attributes: ['id', 'question_text', 'correct_answer'],
             include: [
               {
                 model: Test,
                 as: 'test',
-                attributes: ['id', 'uuid', 'title'],
+                attributes: ['id', 'title'],
                 required: false,
                 include: [
                   {
@@ -201,7 +201,7 @@ class QuestionReportController {
         if (!questionMap.has(questionId)) {
           questionMap.set(questionId, {
             questionId: report.question.id,
-            questionUuid: report.question.uuid,
+            questionUuid: report.question.id,
             questionText: report.question.question_text,
             correctAnswer: report.question.correct_answer,
             testSeries: null,
@@ -368,14 +368,14 @@ class QuestionReportController {
       const { questionId } = req.params;
       const { status = 'all', sortBy = 'latest' } = req.query;
 
-      // Get the question with full details
+      // Get the question with full details (questions.id is a UUID string)
       const question = await Question.findOne({
-        where: { id: parseInt(questionId) },
+        where: { id: questionId },
         include: [
           {
             model: Test,
             as: 'test',
-            attributes: ['id', 'uuid', 'title'],
+            attributes: ['id', 'title'],
             required: false,
             include: [
               {
@@ -413,7 +413,7 @@ class QuestionReportController {
       }
 
       // Build where clause for reports
-      let where = { question_id: parseInt(questionId) };
+      let where = { question_id: questionId };
       if (status !== 'all') {
         where.status = status;
       }
@@ -459,7 +459,7 @@ class QuestionReportController {
           id: question.test.id,
           name: question.test.title,
           type: 'test',
-          uuid: question.test.uuid
+          uuid: question.test.id
         });
       }
 
@@ -484,7 +484,7 @@ class QuestionReportController {
         data: {
           question: {
             id: question.id,
-            uuid: question.uuid,
+            uuid: question.id,
             questionText: question.question_text,
             questionTextGujarati: question.question_text_gujarati,
             options: {
