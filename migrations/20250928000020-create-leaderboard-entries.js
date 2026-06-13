@@ -30,7 +30,7 @@ module.exports = {
         onUpdate: 'CASCADE'
       },
       test_session_id: {
-        type: Sequelize.CHAR(36),
+        type: 'CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin',
         allowNull: false,
         references: {
           model: 'test_sessions',
@@ -41,13 +41,7 @@ module.exports = {
       },
       test_series_id: {
         type: 'CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin',
-        allowNull: true,
-        references: {
-          model: 'test_series',
-          key: 'id'
-        },
-        onDelete: 'SET NULL',
-        onUpdate: 'CASCADE'
+        allowNull: true
       },
       category_id: {
         type: Sequelize.INTEGER,
