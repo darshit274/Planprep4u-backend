@@ -5,7 +5,7 @@ module.exports = {
     await queryInterface.createTable('subscription', {
       id: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, primaryKey: true },
       user_id: { type: Sequelize.UUID, allowNull: false, references: { model: 'users', key: 'uuid' }, onUpdate: 'CASCADE', onDelete: 'CASCADE' },
-      test_series_id: { type: Sequelize.UUID, allowNull: false, references: { model: 'test_series', key: 'id' }, onUpdate: 'CASCADE', onDelete: 'CASCADE' },
+      test_series_id: { type: Sequelize.UUID, allowNull: true },
       transaction_id: { type: Sequelize.STRING, allowNull: false, unique: true },
       payment_method: { type: Sequelize.STRING, allowNull: true },
       amount_paid: { type: Sequelize.DOUBLE, allowNull: false },
