@@ -6,15 +6,16 @@
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('users', 'isEmailVerified', {
-      type: Sequelize.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      comment: 'Whether user has verified email'
-    });
-
-    // optional index for fast filtering in admin panel
-    await queryInterface.addIndex('users', ['isEmailVerified']);
+    const desc = await queryInterface.describeTable('users');
+    if (!desc['isEmailVerified']) {
+      await queryInterface.addColumn('users', 'isEmailVerified', {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Whether user has verified email'
+      });
+    }
+    await queryInterface.addIndex('users', ['isEmailVerified']).catch(() => {});
   },
 
   async down(queryInterface) {

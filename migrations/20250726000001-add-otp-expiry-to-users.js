@@ -2,10 +2,10 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn('users', 'otpExpiry', {
-      type: Sequelize.DATE,
-      allowNull: true
-    });
+    const desc = await queryInterface.describeTable('users');
+    if (!desc['otpExpiry']) {
+      await queryInterface.addColumn('users', 'otpExpiry', { type: Sequelize.DATE, allowNull: true });
+    }
   },
 
   down: async (queryInterface, Sequelize) => {

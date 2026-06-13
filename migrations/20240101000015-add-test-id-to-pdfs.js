@@ -9,8 +9,7 @@ module.exports = {
     //   allowNull: true
     // });
 
-    // Add index for better performance
-    await queryInterface.addIndex('pdfs', ['test_id']);
+    await queryInterface.addIndex('pdfs', ['test_id']).catch(() => {});
   },
 
   async down (queryInterface, Sequelize) {

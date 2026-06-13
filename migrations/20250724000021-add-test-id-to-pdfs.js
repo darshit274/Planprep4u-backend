@@ -6,19 +6,18 @@
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('pdfs', 'test_id', {
-      type: Sequelize.UUID,
-      allowNull: true,
-      references: {
-        model: 'test',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL',
-      comment: 'Legacy link to individual test (optional)'
-    });
-
-    await queryInterface.addIndex('pdfs', ['test_id']);
+    const desc = await queryInterface.describeTable('pdfs');
+    if (!desc['test_id']) {
+      await queryInterface.addColumn('pdfs', 'test_id', {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: { model: 'test', key: 'id' },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+        comment: 'Legacy link to individual test (optional)'
+      });
+    }
+    await queryInterface.addIndex('pdfs', ['test_id']).catch(() => {});
   },
 
   async down(queryInterface) {

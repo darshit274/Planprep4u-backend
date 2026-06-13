@@ -2,10 +2,17 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Drop the old pdfs table if it exists and create new one
-    await queryInterface.dropTable('pdfs').catch(() => {
-      // Table might not exist, ignore error
-    });
+    // Only drop and recreate if the table is missing required columns (old schema)
+    let needsRebuild = false;
+    try {
+      const desc = await queryInterface.describeTable('pdfs');
+      needsRebuild = !desc['file_path']; // old table lacks file_path
+    } catch (e) {
+      needsRebuild = true; // table doesn't exist
+    }
+    if (!needsRebuild) return;
+
+    await queryInterface.dropTable('pdfs').catch(() => {});
 
     // Create new uploads-ready PDFs table
     await queryInterface.createTable('pdfs', {

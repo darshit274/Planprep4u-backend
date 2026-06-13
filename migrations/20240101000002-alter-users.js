@@ -1,36 +1,18 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
-    /**
-     * Add altering commands here.
-     *
-     * Example:
-     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
-     */
-    await queryInterface.addColumn('users', 'otp', {
-      type: Sequelize.INTEGER,
-      allowNull: true
-    });
-
-
-
-    await queryInterface.addColumn('users', 'phone', {
-      type: Sequelize.STRING,
-      allowNull: true
-    });
+  async up(queryInterface, Sequelize) {
+    const desc = await queryInterface.describeTable('users');
+    if (!desc['otp']) {
+      await queryInterface.addColumn('users', 'otp', { type: Sequelize.INTEGER, allowNull: true });
+    }
+    if (!desc['phone']) {
+      await queryInterface.addColumn('users', 'phone', { type: Sequelize.STRING, allowNull: true });
+    }
   },
-
-  async down (queryInterface, Sequelize) {
-    /**
-     * Add reverting commands here.
-     *
-     * Example:
-     * await queryInterface.dropTable('users');
-     */
-    await queryInterface.removeColumn('users', 'otp');
-    await queryInterface.removeColumn('users', 'phone');
-
+  async down(queryInterface) {
+    const desc = await queryInterface.describeTable('users');
+    if (desc['otp']) await queryInterface.removeColumn('users', 'otp');
+    if (desc['phone']) await queryInterface.removeColumn('users', 'phone');
   }
 };

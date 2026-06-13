@@ -2,12 +2,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('users', 'current_session_id', {
-      type: Sequelize.STRING(36),
-      allowNull: true,
-      defaultValue: null,
-      after: 'subscription_expiry_reminder_sent'
-    });
+    const desc = await queryInterface.describeTable('users');
+    if (!desc['current_session_id']) {
+      await queryInterface.addColumn('users', 'current_session_id', {
+        type: Sequelize.STRING(36),
+        allowNull: true,
+        defaultValue: null,
+        after: 'subscription_expiry_reminder_sent'
+      });
+    }
   },
 
   async down(queryInterface, Sequelize) {
