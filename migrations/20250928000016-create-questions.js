@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -147,12 +147,12 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('questions', ['test_id'], { name: 'questions_test_id' });
-    await queryInterface.addIndex('questions', ['subject_tag'], { name: 'questions_subject_tag' });
-    await queryInterface.addIndex('questions', ['difficulty_tag'], { name: 'questions_difficulty_tag' });
-    await queryInterface.addIndex('questions', ['display_order'], { name: 'questions_display_order' });
-    await queryInterface.addIndex('questions', ['marks'], { name: 'questions_marks' });
-    await queryInterface.addIndex('questions', ['category_id'], { name: 'idx_questions_category' });
+    await queryInterface.addIndex('questions', ['test_id'], { name: 'questions_test_id' }).catch(() => {});
+    await queryInterface.addIndex('questions', ['subject_tag'], { name: 'questions_subject_tag' }).catch(() => {});
+    await queryInterface.addIndex('questions', ['difficulty_tag'], { name: 'questions_difficulty_tag' }).catch(() => {});
+    await queryInterface.addIndex('questions', ['display_order'], { name: 'questions_display_order' }).catch(() => {});
+    await queryInterface.addIndex('questions', ['marks'], { name: 'questions_marks' }).catch(() => {});
+    await queryInterface.addIndex('questions', ['category_id'], { name: 'idx_questions_category' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

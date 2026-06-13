@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -57,9 +57,9 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('pdf_categories', ['slug'], { name: 'pdf_categories_slug' });
-    await queryInterface.addIndex('pdf_categories', ['is_active'], { name: 'pdf_categories_is_active' });
-    await queryInterface.addIndex('pdf_categories', ['sort_order'], { name: 'pdf_categories_sort_order' });
+    await queryInterface.addIndex('pdf_categories', ['slug'], { name: 'pdf_categories_slug' }).catch(() => {});
+    await queryInterface.addIndex('pdf_categories', ['is_active'], { name: 'pdf_categories_is_active' }).catch(() => {});
+    await queryInterface.addIndex('pdf_categories', ['sort_order'], { name: 'pdf_categories_sort_order' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

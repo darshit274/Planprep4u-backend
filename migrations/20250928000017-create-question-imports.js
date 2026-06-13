@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -100,11 +100,11 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('question_imports', ['admin_id'], { name: 'question_imports_admin_id' });
-    await queryInterface.addIndex('question_imports', ['category_id'], { name: 'question_imports_category_id' });
-    await queryInterface.addIndex('question_imports', ['test_series_id'], { name: 'test_series_id' });
-    await queryInterface.addIndex('question_imports', ['import_status'], { name: 'question_imports_import_status' });
-    await queryInterface.addIndex('question_imports', ['created_at'], { name: 'question_imports_created_at' });
+    await queryInterface.addIndex('question_imports', ['admin_id'], { name: 'question_imports_admin_id' }).catch(() => {});
+    await queryInterface.addIndex('question_imports', ['category_id'], { name: 'question_imports_category_id' }).catch(() => {});
+    await queryInterface.addIndex('question_imports', ['test_series_id'], { name: 'test_series_id' }).catch(() => {});
+    await queryInterface.addIndex('question_imports', ['import_status'], { name: 'question_imports_import_status' }).catch(() => {});
+    await queryInterface.addIndex('question_imports', ['created_at'], { name: 'question_imports_created_at' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -68,11 +68,11 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('notifications', ['user_id'], { name: 'notifications_user_id' });
-    await queryInterface.addIndex('notifications', ['type'], { name: 'notifications_type' });
-    await queryInterface.addIndex('notifications', ['status'], { name: 'notifications_status' });
-    await queryInterface.addIndex('notifications', ['created_at'], { name: 'notifications_created_at' });
-    await queryInterface.addIndex('notifications', ['user_id', 'read_at'], { name: 'notifications_user_id_read_at' });
+    await queryInterface.addIndex('notifications', ['user_id'], { name: 'notifications_user_id' }).catch(() => {});
+    await queryInterface.addIndex('notifications', ['type'], { name: 'notifications_type' }).catch(() => {});
+    await queryInterface.addIndex('notifications', ['status'], { name: 'notifications_status' }).catch(() => {});
+    await queryInterface.addIndex('notifications', ['created_at'], { name: 'notifications_created_at' }).catch(() => {});
+    await queryInterface.addIndex('notifications', ['user_id', 'read_at'], { name: 'notifications_user_id_read_at' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

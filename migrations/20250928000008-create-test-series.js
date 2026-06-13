@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -140,12 +140,12 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('test_series', ['category_id'], { name: 'test_series_category_id' });
-    await queryInterface.addIndex('test_series', ['is_published'], { name: 'test_series_is_published' });
-    await queryInterface.addIndex('test_series', ['is_active'], { name: 'test_series_is_active' });
-    await queryInterface.addIndex('test_series', ['uuid'], { name: 'test_series_uuid' });
-    await queryInterface.addIndex('test_series', ['is_free'], { name: 'test_series_is_free' });
-    await queryInterface.addIndex('test_series', ['requires_subscription'], { name: 'test_series_requires_subscription' });
+    await queryInterface.addIndex('test_series', ['category_id'], { name: 'test_series_category_id' }).catch(() => {});
+    await queryInterface.addIndex('test_series', ['is_published'], { name: 'test_series_is_published' }).catch(() => {});
+    await queryInterface.addIndex('test_series', ['is_active'], { name: 'test_series_is_active' }).catch(() => {});
+    await queryInterface.addIndex('test_series', ['uuid'], { name: 'test_series_uuid' }).catch(() => {});
+    await queryInterface.addIndex('test_series', ['is_free'], { name: 'test_series_is_free' }).catch(() => {});
+    await queryInterface.addIndex('test_series', ['requires_subscription'], { name: 'test_series_requires_subscription' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

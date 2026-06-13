@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -111,19 +111,19 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('test_sessions', ['user_id'], { name: 'test_sessions_user_id' });
-    await queryInterface.addIndex('test_sessions', ['test_id'], { name: 'test_sessions_test_id' });
-    await queryInterface.addIndex('test_sessions', ['user_id', 'test_id'], { name: 'test_sessions_user_id_test_id' });
-    await queryInterface.addIndex('test_sessions', ['status'], { name: 'test_sessions_status' });
-    await queryInterface.addIndex('test_sessions', ['is_completed'], { name: 'test_sessions_is_completed' });
-    await queryInterface.addIndex('test_sessions', ['started_at'], { name: 'test_sessions_started_at' });
-    await queryInterface.addIndex('test_sessions', ['completed_at'], { name: 'test_sessions_completed_at' });
+    await queryInterface.addIndex('test_sessions', ['user_id'], { name: 'test_sessions_user_id' }).catch(() => {});
+    await queryInterface.addIndex('test_sessions', ['test_id'], { name: 'test_sessions_test_id' }).catch(() => {});
+    await queryInterface.addIndex('test_sessions', ['user_id', 'test_id'], { name: 'test_sessions_user_id_test_id' }).catch(() => {});
+    await queryInterface.addIndex('test_sessions', ['status'], { name: 'test_sessions_status' }).catch(() => {});
+    await queryInterface.addIndex('test_sessions', ['is_completed'], { name: 'test_sessions_is_completed' }).catch(() => {});
+    await queryInterface.addIndex('test_sessions', ['started_at'], { name: 'test_sessions_started_at' }).catch(() => {});
+    await queryInterface.addIndex('test_sessions', ['completed_at'], { name: 'test_sessions_completed_at' }).catch(() => {});
 
     // Add unique constraint for active sessions
     await queryInterface.addIndex('test_sessions', ['user_id', 'test_id', 'status'], {
       name: 'unique_active_session_per_user_test',
       unique: true
-    });
+    }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -77,10 +77,10 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('exam_categories', ['parent_id'], { name: 'exam_categories_parent_id' });
-    await queryInterface.addIndex('exam_categories', ['hierarchy_level'], { name: 'exam_categories_hierarchy_level' });
-    await queryInterface.addIndex('exam_categories', ['is_active'], { name: 'exam_categories_is_active' });
-    await queryInterface.addIndex('exam_categories', ['uuid'], { name: 'exam_categories_uuid' });
+    await queryInterface.addIndex('exam_categories', ['parent_id'], { name: 'exam_categories_parent_id' }).catch(() => {});
+    await queryInterface.addIndex('exam_categories', ['hierarchy_level'], { name: 'exam_categories_hierarchy_level' }).catch(() => {});
+    await queryInterface.addIndex('exam_categories', ['is_active'], { name: 'exam_categories_is_active' }).catch(() => {});
+    await queryInterface.addIndex('exam_categories', ['uuid'], { name: 'exam_categories_uuid' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

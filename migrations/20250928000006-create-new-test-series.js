@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -191,8 +191,8 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('new_test_series', ['is_active', 'is_published'], { name: 'new_test_series_status_index' });
-    await queryInterface.addIndex('new_test_series', ['created_by'], { name: 'new_test_series_created_by_index' });
+    await queryInterface.addIndex('new_test_series', ['is_active', 'is_published'], { name: 'new_test_series_status_index' }).catch(() => {});
+    await queryInterface.addIndex('new_test_series', ['created_by'], { name: 'new_test_series_created_by_index' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

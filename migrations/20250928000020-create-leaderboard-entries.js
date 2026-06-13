@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -120,14 +120,14 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('leaderboard_entries', ['test_session_id'], { name: 'test_session_id' });
-    await queryInterface.addIndex('leaderboard_entries', ['user_id'], { name: 'leaderboard_entries_user_id' });
-    await queryInterface.addIndex('leaderboard_entries', ['test_id'], { name: 'leaderboard_entries_test_id' });
-    await queryInterface.addIndex('leaderboard_entries', ['test_series_id'], { name: 'leaderboard_entries_test_series_id' });
-    await queryInterface.addIndex('leaderboard_entries', ['category_id'], { name: 'leaderboard_entries_category_id' });
-    await queryInterface.addIndex('leaderboard_entries', ['score', 'completion_date'], { name: 'leaderboard_entries_score_date' });
-    await queryInterface.addIndex('leaderboard_entries', ['is_valid'], { name: 'leaderboard_entries_is_valid' });
-    await queryInterface.addIndex('leaderboard_entries', ['rank'], { name: 'leaderboard_entries_rank' });
+    await queryInterface.addIndex('leaderboard_entries', ['test_session_id'], { name: 'test_session_id' }).catch(() => {});
+    await queryInterface.addIndex('leaderboard_entries', ['user_id'], { name: 'leaderboard_entries_user_id' }).catch(() => {});
+    await queryInterface.addIndex('leaderboard_entries', ['test_id'], { name: 'leaderboard_entries_test_id' }).catch(() => {});
+    await queryInterface.addIndex('leaderboard_entries', ['test_series_id'], { name: 'leaderboard_entries_test_series_id' }).catch(() => {});
+    await queryInterface.addIndex('leaderboard_entries', ['category_id'], { name: 'leaderboard_entries_category_id' }).catch(() => {});
+    await queryInterface.addIndex('leaderboard_entries', ['score', 'completion_date'], { name: 'leaderboard_entries_score_date' }).catch(() => {});
+    await queryInterface.addIndex('leaderboard_entries', ['is_valid'], { name: 'leaderboard_entries_is_valid' }).catch(() => {});
+    await queryInterface.addIndex('leaderboard_entries', ['rank'], { name: 'leaderboard_entries_rank' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

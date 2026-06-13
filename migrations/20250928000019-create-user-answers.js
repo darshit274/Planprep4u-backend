@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -67,14 +67,14 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('user_answers', ['test_session_id'], { name: 'user_answers_test_session_id' });
-    await queryInterface.addIndex('user_answers', ['question_id'], { name: 'user_answers_question_id' });
+    await queryInterface.addIndex('user_answers', ['test_session_id'], { name: 'user_answers_test_session_id' }).catch(() => {});
+    await queryInterface.addIndex('user_answers', ['question_id'], { name: 'user_answers_question_id' }).catch(() => {});
 
     // Add unique constraint
     await queryInterface.addIndex('user_answers', ['test_session_id', 'question_id'], {
       name: 'unique_session_question',
       unique: true
-    });
+    }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

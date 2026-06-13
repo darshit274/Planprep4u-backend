@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -58,7 +58,7 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('sub_categories', ['category_id'], { name: 'category_id' });
+    await queryInterface.addIndex('sub_categories', ['category_id'], { name: 'category_id' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

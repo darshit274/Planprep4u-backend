@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -54,9 +54,9 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('admins', ['email'], { name: 'admins_email' });
-    await queryInterface.addIndex('admins', ['role'], { name: 'admins_role' });
-    await queryInterface.addIndex('admins', ['isActive'], { name: 'admins_is_active' });
+    await queryInterface.addIndex('admins', ['email'], { name: 'admins_email' }).catch(() => {});
+    await queryInterface.addIndex('admins', ['role'], { name: 'admins_role' }).catch(() => {});
+    await queryInterface.addIndex('admins', ['isActive'], { name: 'admins_is_active' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

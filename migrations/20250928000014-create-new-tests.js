@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -256,13 +256,13 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('new_tests', ['created_by'], { name: 'new_tests_created_by' });
-    await queryInterface.addIndex('new_tests', ['test_series_id'], { name: 'new_tests_series_index' });
-    await queryInterface.addIndex('new_tests', ['category_id'], { name: 'new_tests_category_index' });
-    await queryInterface.addIndex('new_tests', ['test_type'], { name: 'new_tests_type_index' });
-    await queryInterface.addIndex('new_tests', ['is_active', 'is_published'], { name: 'new_tests_status_index' });
-    await queryInterface.addIndex('new_tests', ['display_order'], { name: 'new_tests_display_order_index' });
-    await queryInterface.addIndex('new_tests', ['available_from', 'available_until'], { name: 'new_tests_availability_index' });
+    await queryInterface.addIndex('new_tests', ['created_by'], { name: 'new_tests_created_by' }).catch(() => {});
+    await queryInterface.addIndex('new_tests', ['test_series_id'], { name: 'new_tests_series_index' }).catch(() => {});
+    await queryInterface.addIndex('new_tests', ['category_id'], { name: 'new_tests_category_index' }).catch(() => {});
+    await queryInterface.addIndex('new_tests', ['test_type'], { name: 'new_tests_type_index' }).catch(() => {});
+    await queryInterface.addIndex('new_tests', ['is_active', 'is_published'], { name: 'new_tests_status_index' }).catch(() => {});
+    await queryInterface.addIndex('new_tests', ['display_order'], { name: 'new_tests_display_order_index' }).catch(() => {});
+    await queryInterface.addIndex('new_tests', ['available_from', 'available_until'], { name: 'new_tests_availability_index' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

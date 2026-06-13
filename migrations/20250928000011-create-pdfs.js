@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -147,13 +147,13 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('pdfs', ['category_id'], { name: 'pdfs_category_id' });
-    await queryInterface.addIndex('pdfs', ['test_series_id'], { name: 'pdfs_test_series_id' });
-    await queryInterface.addIndex('pdfs', ['exam_type_id'], { name: 'pdfs_exam_type_id' });
-    await queryInterface.addIndex('pdfs', ['access_level'], { name: 'pdfs_access_level' });
-    await queryInterface.addIndex('pdfs', ['is_active'], { name: 'pdfs_is_active' });
-    await queryInterface.addIndex('pdfs', ['is_featured'], { name: 'pdfs_is_featured' });
-    await queryInterface.addIndex('pdfs', ['created_at'], { name: 'pdfs_created_at' });
+    await queryInterface.addIndex('pdfs', ['category_id'], { name: 'pdfs_category_id' }).catch(() => {});
+    await queryInterface.addIndex('pdfs', ['test_series_id'], { name: 'pdfs_test_series_id' }).catch(() => {});
+    await queryInterface.addIndex('pdfs', ['exam_type_id'], { name: 'pdfs_exam_type_id' }).catch(() => {});
+    await queryInterface.addIndex('pdfs', ['access_level'], { name: 'pdfs_access_level' }).catch(() => {});
+    await queryInterface.addIndex('pdfs', ['is_active'], { name: 'pdfs_is_active' }).catch(() => {});
+    await queryInterface.addIndex('pdfs', ['is_featured'], { name: 'pdfs_is_featured' }).catch(() => {});
+    await queryInterface.addIndex('pdfs', ['created_at'], { name: 'pdfs_created_at' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

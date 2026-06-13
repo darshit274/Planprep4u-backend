@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -186,14 +186,14 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('tests', ['sub_category_id'], { name: 'sub_category_id' });
-    await queryInterface.addIndex('tests', ['is_demo'], { name: 'idx_tests_is_demo' });
-    await queryInterface.addIndex('tests', ['is_free_in_paid_series'], { name: 'idx_tests_is_free_in_paid_series' });
-    await queryInterface.addIndex('tests', ['is_one_time_only'], { name: 'idx_tests_is_one_time_only' });
-    await queryInterface.addIndex('tests', ['negative_marking_enabled'], { name: 'idx_tests_negative_marking_enabled' });
-    await queryInterface.addIndex('tests', ['is_free_in_series'], { name: 'tests_is_free_in_series' });
-    await queryInterface.addIndex('tests', ['difficulty_level'], { name: 'tests_difficulty_level' });
-    await queryInterface.addIndex('tests', ['display_order'], { name: 'tests_display_order' });
+    await queryInterface.addIndex('tests', ['sub_category_id'], { name: 'sub_category_id' }).catch(() => {});
+    await queryInterface.addIndex('tests', ['is_demo'], { name: 'idx_tests_is_demo' }).catch(() => {});
+    await queryInterface.addIndex('tests', ['is_free_in_paid_series'], { name: 'idx_tests_is_free_in_paid_series' }).catch(() => {});
+    await queryInterface.addIndex('tests', ['is_one_time_only'], { name: 'idx_tests_is_one_time_only' }).catch(() => {});
+    await queryInterface.addIndex('tests', ['negative_marking_enabled'], { name: 'idx_tests_negative_marking_enabled' }).catch(() => {});
+    await queryInterface.addIndex('tests', ['is_free_in_series'], { name: 'tests_is_free_in_series' }).catch(() => {});
+    await queryInterface.addIndex('tests', ['difficulty_level'], { name: 'tests_difficulty_level' }).catch(() => {});
+    await queryInterface.addIndex('tests', ['display_order'], { name: 'tests_display_order' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

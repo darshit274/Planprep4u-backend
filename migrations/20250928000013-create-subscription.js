@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -69,10 +69,10 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('subscription', ['user_id'], { name: 'subscription_user_id' });
-    await queryInterface.addIndex('subscription', ['test_series_id'], { name: 'subscription_test_series_id' });
-    await queryInterface.addIndex('subscription', ['status'], { name: 'subscription_status' });
-    await queryInterface.addIndex('subscription', ['transaction_id'], { name: 'subscription_transaction_id' });
+    await queryInterface.addIndex('subscription', ['user_id'], { name: 'subscription_user_id' }).catch(() => {});
+    await queryInterface.addIndex('subscription', ['test_series_id'], { name: 'subscription_test_series_id' }).catch(() => {});
+    await queryInterface.addIndex('subscription', ['status'], { name: 'subscription_status' }).catch(() => {});
+    await queryInterface.addIndex('subscription', ['transaction_id'], { name: 'subscription_transaction_id' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {

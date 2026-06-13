@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -143,12 +143,12 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('hierarchy_categories', ['created_by'], { name: 'hierarchy_categories_created_by' });
-    await queryInterface.addIndex('hierarchy_categories', ['test_series_id', 'hierarchy_level'], { name: 'hierarchy_categories_series_level_index' });
-    await queryInterface.addIndex('hierarchy_categories', ['parent_id'], { name: 'hierarchy_categories_parent_index' });
-    await queryInterface.addIndex('hierarchy_categories', ['hierarchy_path'], { name: 'hierarchy_categories_path_index' });
-    await queryInterface.addIndex('hierarchy_categories', ['is_active'], { name: 'hierarchy_categories_active_index' });
-    await queryInterface.addIndex('hierarchy_categories', ['display_order'], { name: 'hierarchy_categories_display_order_index' });
+    await queryInterface.addIndex('hierarchy_categories', ['created_by'], { name: 'hierarchy_categories_created_by' }).catch(() => {});
+    await queryInterface.addIndex('hierarchy_categories', ['test_series_id', 'hierarchy_level'], { name: 'hierarchy_categories_series_level_index' }).catch(() => {});
+    await queryInterface.addIndex('hierarchy_categories', ['parent_id'], { name: 'hierarchy_categories_parent_index' }).catch(() => {});
+    await queryInterface.addIndex('hierarchy_categories', ['hierarchy_path'], { name: 'hierarchy_categories_path_index' }).catch(() => {});
+    await queryInterface.addIndex('hierarchy_categories', ['is_active'], { name: 'hierarchy_categories_active_index' }).catch(() => {});
+    await queryInterface.addIndex('hierarchy_categories', ['display_order'], { name: 'hierarchy_categories_display_order_index' }).catch(() => {});
   },
 
   async down(queryInterface, Sequelize) {
