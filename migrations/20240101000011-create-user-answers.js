@@ -66,11 +66,10 @@ module.exports = {
       }
     });
 
-    // Add indexes
-    await queryInterface.addIndex('user_answers', ['user_id']);
-    await queryInterface.addIndex('user_answers', ['test_id']);
-    await queryInterface.addIndex('user_answers', ['question_id']);
-    await queryInterface.addIndex('user_answers', ['user_id', 'test_id']);
+    await queryInterface.addIndex('user_answers', ['user_id']).catch(() => {});
+    await queryInterface.addIndex('user_answers', ['test_id']).catch(() => {});
+    await queryInterface.addIndex('user_answers', ['question_id']).catch(() => {});
+    await queryInterface.addIndex('user_answers', ['user_id', 'test_id']).catch(() => {});
   },
 
   down: async (queryInterface, Sequelize) => {
