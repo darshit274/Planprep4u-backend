@@ -14,10 +14,10 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     test_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'tests',
+        model: 'test',
         key: 'id'
       }
     },
