@@ -36,6 +36,12 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0,
       comment: 'Display order for categories'
     },
+    access_level: {
+      type: DataTypes.ENUM('free', 'premium', 'restricted'),
+      allowNull: false,
+      defaultValue: 'free',
+      comment: 'All PDFs in this folder inherit this access level'
+    },
     parent_category_id: {
       type: DataTypes.INTEGER,
       allowNull: true,

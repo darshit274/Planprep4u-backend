@@ -56,7 +56,7 @@ exports.getPdfCategories = async (req, res, next) => {
 // Create PDF category (optionally nested via parent_category_id)
 exports.createPdfCategory = async (req, res, next) => {
   try {
-    const { name, description, icon, color, sort_order, parent_category_id } = req.body;
+    const { name, description, icon, color, sort_order, parent_category_id, access_level } = req.body;
 
     if (!name) {
       return next(new ErrorHandler('Category name is required', 400));
@@ -90,7 +90,8 @@ exports.createPdfCategory = async (req, res, next) => {
       icon: icon || 'Folder',
       color: color || '#3B82F6',
       sort_order: sort_order || 0,
-      parent_category_id: parent_category_id || null
+      parent_category_id: parent_category_id || null,
+      access_level: access_level || 'free'
     });
 
     res.status(201).json({
@@ -109,7 +110,7 @@ exports.createPdfCategory = async (req, res, next) => {
 exports.updatePdfCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, icon, color, sort_order } = req.body;
+    const { name, description, icon, color, sort_order, access_level } = req.body;
 
     const category = await PdfCategory.findByPk(id);
     if (!category || !category.is_active) {
@@ -121,7 +122,8 @@ exports.updatePdfCategory = async (req, res, next) => {
       ...(description !== undefined && { description }),
       ...(icon && { icon }),
       ...(color && { color }),
-      ...(sort_order !== undefined && { sort_order })
+      ...(sort_order !== undefined && { sort_order }),
+      ...(access_level && { access_level })
     });
 
     res.status(200).json({
@@ -262,6 +264,15 @@ exports.uploadPdf = async (req, res, next) => {
     const filePath = uploadedFile.path;
     const filename = uploadedFile.filename;
 
+    // Inherit access_level from the folder if category_id is set
+    let resolvedAccessLevel = access_level || 'free';
+    if (validatedCategoryId) {
+      const folder = await PdfCategory.findByPk(validatedCategoryId);
+      if (folder && folder.access_level) {
+        resolvedAccessLevel = folder.access_level;
+      }
+    }
+
     console.log('✅ File saved to:', filePath);
     console.log('📄 File size:', uploadedFile.size, 'bytes');
 
@@ -271,7 +282,7 @@ exports.uploadPdf = async (req, res, next) => {
         title,
         description,
         category_id: validatedCategoryId,
-        access_level: access_level || 'free',
+        access_level: resolvedAccessLevel,
         test_series_id: course_id || test_series_id || null,
         exam_type_id: exam_type_id ? parseInt(exam_type_id) : null,
         tags: tags ? JSON.parse(tags) : null,
@@ -283,7 +294,7 @@ exports.uploadPdf = async (req, res, next) => {
         // Pricing fields - automatically set is_free based on access_level
         price: price ? parseFloat(price) : 0.00,
         currency: currency || 'INR',
-        is_free: access_level === 'free',
+        is_free: resolvedAccessLevel === 'free',
         discount_percentage: discount_percentage ? parseFloat(discount_percentage) : 0.00,
         subscription_required: subscription_required !== undefined ? (subscription_required === 'true' || subscription_required === true) : false,
         preview_pages: preview_pages ? parseInt(preview_pages) : 0
