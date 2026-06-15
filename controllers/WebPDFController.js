@@ -65,9 +65,9 @@ class WebPDFController {
           const [folderRows] = await sequelize.query(`
             SELECT c.id, c.name, c.access_level, c.price, c.currency,
                    c.is_free_override, c.parent_category_id,
-                   p.access_level AS root_access_level, p.price AS root_price, p.currency AS root_currency
+                   par.access_level AS root_access_level, par.price AS root_price, par.currency AS root_currency
             FROM pdf_categories c
-            LEFT JOIN pdf_categories p ON p.id = c.parent_category_id
+            LEFT JOIN pdf_categories par ON par.id = c.parent_category_id
             WHERE c.id IN (${categoryIds.map(() => '?').join(',')})
           `, { replacements: categoryIds });
           folderRows.forEach(f => { folderMap[f.id] = f; });
