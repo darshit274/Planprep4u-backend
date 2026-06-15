@@ -15,22 +15,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS: allow only known frontend origins. Extend via the ALLOWED_ORIGINS env var
-// (comma-separated) when adding staging/production domains.
-const defaultAllowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174',
-];
-const envAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
-const allowedOrigins = new Set([...defaultAllowedOrigins, ...envAllowedOrigins]);
-
-app.use(cors({}));
+// CORS — allow all origins so nginx error responses (413 etc.) don't block
+// cross-origin requests. Origin restriction is enforced at the nginx proxy layer.
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
+}));
 
 // Trust proxy for devtunnels/ngrok
 app.set('trust proxy', true);
