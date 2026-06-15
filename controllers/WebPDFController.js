@@ -53,24 +53,29 @@ class WebPDFController {
           'file_size', 'access_level', 'is_free', 'price', 'currency',
           'download_count', 'view_count', 'category_id',
           'tags', 'created_at', 'updated_at', 'is_featured'
-        ],
-        include: [
-          {
-            model: PdfCategory,
-            as: 'category',
-            attributes: ['id', 'name', 'access_level', 'price', 'currency', 'is_free_override', 'parent_category_id'],
-            required: false,
-            include: [
-              {
-                model: PdfCategory,
-                as: 'parentCategory',
-                attributes: ['id', 'access_level', 'price', 'currency'],
-                required: false
-              }
-            ]
-          }
         ]
       });
+
+      // Fetch folder pricing separately — safe if migration hasn't run yet
+      let folderMap = {};
+      try {
+        const categoryIds = [...new Set(rows.map(r => r.category_id).filter(Boolean))];
+        if (categoryIds.length > 0) {
+          const { sequelize } = require('../models');
+          const [folderRows] = await sequelize.query(`
+            SELECT c.id, c.name, c.access_level, c.price, c.currency,
+                   c.is_free_override, c.parent_category_id,
+                   p.access_level AS root_access_level, p.price AS root_price, p.currency AS root_currency
+            FROM pdf_categories c
+            LEFT JOIN pdf_categories p ON p.id = c.parent_category_id
+            WHERE c.id IN (${categoryIds.map(() => '?').join(',')})
+          `, { replacements: categoryIds });
+          folderRows.forEach(f => { folderMap[f.id] = f; });
+        }
+      } catch (folderErr) {
+        // pdf_categories may not have price/access_level columns yet — ignore
+        console.warn('Folder price lookup failed (migration pending?):', folderErr.message);
+      }
 
       // Transform data to match web app format
       const pdfsWithMeta = rows.map((pdf) => {
@@ -105,19 +110,19 @@ class WebPDFController {
         let resolvedCurrency = pdf.currency || 'INR';
         let resolvedAccessLevel = pdf.access_level || 'free';
 
-        const folder = pdf.category;
+        const folder = pdf.category_id ? folderMap[pdf.category_id] : null;
         if (folder) {
-          if (folder.parent_category_id && folder.parentCategory) {
+          if (folder.parent_category_id) {
             // Sub-folder: is_free_override → free, else inherit root price
             if (folder.is_free_override) {
               resolvedPrice = 0;
               resolvedAccessLevel = 'free';
             } else {
-              resolvedAccessLevel = folder.parentCategory.access_level || 'free';
-              resolvedPrice = parseFloat(folder.parentCategory.price) || 0;
-              resolvedCurrency = folder.parentCategory.currency || 'INR';
+              resolvedAccessLevel = folder.root_access_level || 'free';
+              resolvedPrice = parseFloat(folder.root_price) || 0;
+              resolvedCurrency = folder.root_currency || 'INR';
             }
-          } else if (!folder.parent_category_id) {
+          } else {
             // Root folder
             resolvedAccessLevel = folder.access_level || 'free';
             resolvedPrice = parseFloat(folder.price) || 0;
