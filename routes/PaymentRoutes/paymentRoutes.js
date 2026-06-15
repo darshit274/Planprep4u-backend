@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { authToken } = require('../../utils/AuthToken');
 const { adminAuth } = require('../../utils/AdminAuth');
-const { User, TestSeries, Subscription, Pdfs } = require('../../models');
+const { User, TestSeries, Subscription, Pdfs, PdfCategory } = require('../../models');
 const { Op } = require('sequelize');
 const {
   razorpayInstance,
@@ -83,68 +83,49 @@ router.post('/create-order', authToken, async (req, res) => {
 
       itemDetails = await Pdfs.findOne({
         where: { id: pdfId },
-        attributes: ['id', 'title', 'access_level', 'price', 'currency', 'is_free', 'discount_percentage']
+        attributes: ['id', 'title', 'access_level', 'price', 'currency', 'is_free', 'category_id']
       });
-
-      console.log('📄 PDF Details Retrieved:', itemDetails ? itemDetails.toJSON() : 'NOT FOUND');
 
       if (!itemDetails) {
-        console.log('❌ PDF not found in database for ID:', pdfId);
-        return res.status(404).json({
-          success: false,
-          message: 'PDF not found'
-        });
+        return res.status(404).json({ success: false, message: 'PDF not found' });
       }
 
-      console.log('🔒 PDF Access Check:', {
-        access_level: itemDetails.access_level,
-        is_free: itemDetails.is_free,
-        shouldBypassPayment: itemDetails.access_level === 'free' || itemDetails.is_free
-      });
+      // Resolve price from folder hierarchy (pricing lives on pdf_categories, not pdfs)
+      let resolvedPrice = parseFloat(itemDetails.price) || 0;
+      let resolvedAccessLevel = itemDetails.access_level || 'free';
 
-      if (itemDetails.access_level === 'free' || itemDetails.is_free) {
-        console.log('🆓 PDF is free, rejecting payment');
-        return res.status(400).json({
-          success: false,
-          message: 'This PDF is free. No payment required.'
+      if (itemDetails.category_id) {
+        const folder = await PdfCategory.findByPk(itemDetails.category_id, {
+          attributes: ['id', 'access_level', 'price', 'currency', 'is_free_override', 'parent_category_id'],
+          include: [{
+            model: PdfCategory,
+            as: 'parentCategory',
+            attributes: ['id', 'access_level', 'price', 'currency'],
+            required: false
+          }]
         });
+        if (folder) {
+          if (folder.parent_category_id && folder.parentCategory) {
+            if (folder.is_free_override) {
+              resolvedAccessLevel = 'free';
+              resolvedPrice = 0;
+            } else {
+              resolvedAccessLevel = folder.parentCategory.access_level || 'free';
+              resolvedPrice = parseFloat(folder.parentCategory.price) || 0;
+            }
+          } else if (!folder.parent_category_id) {
+            resolvedAccessLevel = folder.access_level || 'free';
+            resolvedPrice = parseFloat(folder.price) || 0;
+          }
+        }
       }
 
-      // Calculate amount from PDF price with discount
-      const basePrice = parseFloat(itemDetails.price || 0);
-      const discountPercentage = parseFloat(itemDetails.discount_percentage || 0);
-      const discountedPrice = discountPercentage > 0
-        ? basePrice * (1 - discountPercentage / 100)
-        : basePrice;
-
-      amount = Math.round(discountedPrice * 100); // Convert to paise
-
-      console.log('💰 DETAILED PDF pricing calculation:', {
-        pdfId,
-        title: itemDetails.title,
-        rawPrice: itemDetails.price,
-        rawPriceType: typeof itemDetails.price,
-        basePrice,
-        basePriceType: typeof basePrice,
-        discountPercentage,
-        discountedPrice,
-        discountedPriceType: typeof discountedPrice,
-        amountInPaise: amount,
-        amountInRupees: amount / 100,
-        finalAmountType: typeof amount,
-        isValidAmount: amount > 0 && Number.isInteger(amount)
-      });
-
-      // Additional safety check
-      if (!amount || amount <= 0 || !Number.isInteger(amount)) {
-        console.log('⚠️ AMOUNT CALCULATION FAILED - Details:', {
-          originalPrice: itemDetails.price,
-          parsedBasePrice: basePrice,
-          calculatedAmount: amount,
-          isNaN: isNaN(amount),
-          isInteger: Number.isInteger(amount)
-        });
+      if (resolvedAccessLevel === 'free' || resolvedPrice <= 0) {
+        return res.status(400).json({ success: false, message: 'This PDF is free. No payment required.' });
       }
+
+      amount = Math.round(resolvedPrice * 100); // Convert to paise
+      console.log('💰 PDF payment:', { pdfId, title: itemDetails.title, resolvedPrice, amount });
     }
 
     // Validate amount thoroughly
