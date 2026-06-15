@@ -32,15 +32,15 @@ router.post('/create-order', authToken, async (req, res) => {
   try {
     console.log('🚀 Payment order creation started');
     console.log('👤 User:', req.user ? req.user.uuid : 'No user found');
-    const { testSeriesId, pdfId, planType = 'test_series' } = req.body;
+    const { testSeriesId, pdfId, pdfFolderId, planType = 'test_series' } = req.body;
     const userId = req.user.uuid;
-    console.log('📦 Parsed request data:', { testSeriesId, pdfId, planType, userId });
+    console.log('📦 Parsed request data:', { testSeriesId, pdfId, pdfFolderId, planType, userId });
 
     // Validate required fields
-    if (!testSeriesId && !pdfId) {
+    if (!testSeriesId && !pdfId && !pdfFolderId) {
       return res.status(400).json({
         success: false,
-        message: 'Either testSeriesId or pdfId is required'
+        message: 'Either testSeriesId, pdfId, or pdfFolderId is required'
       });
     }
 
@@ -126,6 +126,51 @@ router.post('/create-order', authToken, async (req, res) => {
 
       amount = Math.round(resolvedPrice * 100); // Convert to paise
       console.log('💰 PDF payment:', { pdfId, title: itemDetails.title, resolvedPrice, amount });
+    } else if (planType === 'pdf_folder' && pdfFolderId) {
+      // Folder-level purchase — unlocks all PDFs inside the root folder
+      itemDetails = await PdfCategory.findByPk(pdfFolderId, {
+        attributes: ['id', 'name', 'access_level', 'price', 'currency', 'parent_category_id']
+      });
+
+      if (!itemDetails) {
+        return res.status(404).json({ success: false, message: 'Folder not found' });
+      }
+
+      if (itemDetails.parent_category_id) {
+        return res.status(400).json({ success: false, message: 'Only root folders can be purchased directly' });
+      }
+
+      if (itemDetails.access_level === 'free' || parseFloat(itemDetails.price) <= 0) {
+        return res.status(400).json({ success: false, message: 'This folder is free. No payment required.' });
+      }
+
+      // Check for existing active folder subscription
+      const allUserSubs = await Subscription.findAll({
+        where: {
+          user_id: userId,
+          status: 'completed',
+          metadata: { [Op.not]: null },
+          [Op.or]: [{ expiry_date: null }, { expiry_date: { [Op.gt]: new Date() } }]
+        },
+        attributes: ['id', 'metadata']
+      });
+      const alreadyOwnsFolder = allUserSubs.some(sub => {
+        try {
+          const meta = typeof sub.metadata === 'string' ? JSON.parse(sub.metadata) : sub.metadata;
+          return meta?.subscription_type === 'pdf_folder' && String(meta?.pdf_folder_id) === String(pdfFolderId);
+        } catch { return false; }
+      });
+
+      if (alreadyOwnsFolder) {
+        return res.status(400).json({
+          success: false,
+          message: 'You already have access to all PDFs in this folder',
+          errorCode: 'ALREADY_SUBSCRIBED'
+        });
+      }
+
+      amount = Math.round(parseFloat(itemDetails.price) * 100);
+      console.log('💰 Folder payment:', { pdfFolderId, name: itemDetails.name, price: itemDetails.price, amount });
     }
 
     // Validate amount thoroughly
@@ -215,9 +260,9 @@ router.post('/create-order', authToken, async (req, res) => {
       payment_capture: 1, // Auto capture payments
       notes: {
         ...razorpayConfig.notes,
-        user_id: userId.substring(0, 40), // Limit length for Razorpay
+        user_id: userId.substring(0, 40),
         plan_type: planType,
-        item_id: (testSeriesId || pdfId).toString().substring(0, 40),
+        item_id: (testSeriesId || pdfId || pdfFolderId).toString().substring(0, 40),
         item_name: (itemDetails.name || itemDetails.title).substring(0, 50)
       }
     };
@@ -232,6 +277,26 @@ router.post('/create-order', authToken, async (req, res) => {
 
     console.log('✅ Razorpay order created:', order.id);
 
+    // Build metadata depending on plan type
+    let subscriptionMeta;
+    if (planType === 'pdf_folder') {
+      subscriptionMeta = {
+        subscription_type: 'pdf_folder',
+        pdf_folder_id: pdfFolderId,
+        pdf_folder_name: itemDetails.name,
+        plan_type: 'pdf_folder',
+        razorpay_order_id: order.id,
+        receipt_id: receiptId
+      };
+    } else {
+      subscriptionMeta = {
+        plan_type: planType,
+        pdf_id: pdfId || null,
+        razorpay_order_id: order.id,
+        receipt_id: receiptId
+      };
+    }
+
     // Create pending subscription record
     const subscriptionData = {
       id: uuidv4(),
@@ -239,17 +304,12 @@ router.post('/create-order', authToken, async (req, res) => {
       test_series_id: planType === 'test_series' ? itemDetails.id : null,
       transaction_id: order.id,
       payment_method: 'razorpay',
-      amount_paid: amount / 100, // Convert back to rupees
+      amount_paid: amount / 100,
       currency: razorpayConfig.currency,
       status: 'pending',
       purchase_date: new Date(),
-      expiry_date: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)), // 1 year from now
-      metadata: JSON.stringify({
-        plan_type: planType,
-        pdf_id: pdfId || null,
-        razorpay_order_id: order.id,
-        receipt_id: receiptId
-      })
+      expiry_date: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)), // 1 year
+      metadata: JSON.stringify(subscriptionMeta)
     };
 
     await Subscription.create(subscriptionData);
