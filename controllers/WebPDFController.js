@@ -535,7 +535,47 @@ class WebPDFController {
     }
   }
 
-  // Serve PDF file without authentication 
+  // Return PDF as base64 JSON — used by the secure frontend viewer
+  static async securePDF(req, res) {
+    try {
+      const { id } = req.params;
+      const path = require('path');
+      const fs = require('fs');
+
+      const targetPdf = await Pdfs.findOne({
+        where: { id, is_active: true },
+        attributes: ['id', 'title', 'file_path', 'original_filename', 'mime_type']
+      });
+
+      if (!targetPdf) {
+        return res.status(404).json({ success: false, message: 'PDF not found' });
+      }
+
+      const filePath = path.resolve(targetPdf.file_path);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ success: false, message: 'PDF file not found on server' });
+      }
+
+      const fileBuffer = fs.readFileSync(filePath);
+      const base64Content = `data:application/pdf;base64,${fileBuffer.toString('base64')}`;
+
+      res.json({
+        success: true,
+        data: {
+          content: base64Content,
+          filename: targetPdf.original_filename,
+          title: targetPdf.title
+        }
+      });
+
+    } catch (error) {
+      console.error('Secure PDF serve error:', error);
+      res.status(500).json({ success: false, message: 'Failed to serve PDF securely' });
+    }
+  }
+
+  // Serve PDF file without authentication
   static async servePDFFile(req, res) {
     try {
       const { id } = req.params;

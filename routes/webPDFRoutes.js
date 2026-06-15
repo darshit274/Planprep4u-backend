@@ -30,22 +30,14 @@ const optionalAuth = async (req, res, next) => {
 
 // Web app compatible PDF routes - ALL REQUIRE AUTHENTICATION FOR SECURITY
 router.get('/', authenticateToken, WebPDFController.getPDFs);
+router.get('/auth-test', authenticateToken, (req, res) => {
+  res.json({ success: true, message: 'Authentication working', user: req.user, timestamp: new Date().toISOString() });
+});
+router.get('/:id/secure', authenticateToken, WebPDFController.securePDF);
 router.get('/:id/download', authenticateToken, WebPDFController.downloadPDF);
 router.get('/:id/preview', authenticateToken, WebPDFController.previewPDF);
 router.get('/:id/view', authenticateToken, WebPDFController.viewPDF);
 router.get('/:id/file', WebPDFController.servePDFFile);
-
-// Test authentication endpoint
-router.get('/auth-test', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    message: 'Authentication working',
-    user: req.user,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Simple PDF viewing - no authentication required
 router.get('/:id/secure-view', WebPDFController.secureViewPDF);
 
 module.exports = router;
