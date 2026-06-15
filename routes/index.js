@@ -35,8 +35,8 @@ router.use("/admin/upload", UploadRoutes); // File upload APIs for rich text edi
 router.use("/admin/test-management", TestManagementRoutes); // Admin test management APIs (old system)
 router.use("/admin/dynamic-test", DynamicTestManagementRoutes); // New dynamic hierarchy system
 router.use("/subscriptions", SubscriptionRoutes);
-router.use("/pdfs", PDFRoutes); // Original PDF APIs with /secure endpoint
-// router.use("/pdfs", WebPDFRoutes); // Web app compatible PDF APIs (disabled in favor of original)
+// router.use("/pdfs", PDFRoutes); // Original PDF APIs with /secure endpoint
+router.use("/pdfs", WebPDFRoutes); // Web app compatible PDF APIs (resolves folder pricing)
 router.use("/notifications", NotificationRoutes);
 router.use("/profile", ProfileRoutes); // User profile management APIs
 router.use("/test-response", TestResponseRoutes); // Test response and leaderboard APIs
