@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authToken } = require('../../utils/AuthToken');
-const { User, TestSeries, Subscription, Pdfs } = require('../../models');
+const { User, TestSeries, Subscription, Pdfs, PdfCategory } = require('../../models');
 const { Op } = require('sequelize');
 
 // Simple test endpoint for mobile app connectivity
@@ -180,10 +180,10 @@ router.get('/pdf/:pdfId', authToken, async (req, res) => {
 
     console.log('🔍 Checking PDF access:', { userId: userId.substring(0, 8), pdfId });
 
-    // Get PDF details
+    // Get PDF details including category for folder-level access checks
     const pdf = await Pdfs.findOne({
       where: { id: pdfId },
-      attributes: ['id', 'title', 'access_level', 'file_path']
+      attributes: ['id', 'title', 'access_level', 'file_path', 'category_id']
     });
 
     if (!pdf) {
@@ -291,6 +291,51 @@ router.get('/pdf/:pdfId', authToken, async (req, res) => {
         }
         return false;
       });
+    }
+
+    // Method 3: Check folder-level subscription (PDF folder grant from admin)
+    if (!pdfSubscription && pdf.category_id) {
+      try {
+        // Determine root folder id for this PDF
+        const folder = await PdfCategory.findByPk(pdf.category_id, {
+          attributes: ['id', 'parent_category_id']
+        });
+        const rootFolderId = folder?.parent_category_id
+          ? folder.parent_category_id
+          : folder?.id;
+
+        if (rootFolderId) {
+          const allFolderSubs = await Subscription.findAll({
+            where: {
+              user_id: userId,
+              test_series_id: null,
+              status: 'completed',
+              metadata: { [Op.not]: null },
+              [Op.or]: [
+                { expiry_date: null },
+                { expiry_date: { [Op.gt]: new Date() } }
+              ]
+            },
+            attributes: ['id', 'purchase_date', 'expiry_date', 'amount_paid', 'metadata']
+          });
+
+          pdfSubscription = allFolderSubs.find(sub => {
+            try {
+              const metadata = typeof sub.metadata === 'string'
+                ? JSON.parse(sub.metadata)
+                : sub.metadata;
+              return (
+                metadata?.subscription_type === 'pdf_folder' &&
+                String(metadata?.pdf_folder_id) === String(rootFolderId)
+              );
+            } catch {
+              return false;
+            }
+          });
+        }
+      } catch (folderErr) {
+        console.log('⚠️ Folder subscription check failed:', folderErr.message);
+      }
     }
 
     console.log('🎯 PDF subscription query result:', pdfSubscription ? {

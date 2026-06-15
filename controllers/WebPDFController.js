@@ -50,8 +50,25 @@ class WebPDFController {
         order: [['created_at', 'DESC']],
         attributes: [
           'id', 'title', 'description', 'original_filename',
-          'file_size', 'access_level', 'download_count', 'view_count',
+          'file_size', 'access_level', 'is_free', 'price', 'currency',
+          'download_count', 'view_count', 'category_id',
           'tags', 'created_at', 'updated_at', 'is_featured'
+        ],
+        include: [
+          {
+            model: PdfCategory,
+            as: 'category',
+            attributes: ['id', 'name', 'access_level', 'price', 'currency', 'is_free_override', 'parent_category_id'],
+            required: false,
+            include: [
+              {
+                model: PdfCategory,
+                as: 'parentCategory',
+                attributes: ['id', 'access_level', 'price', 'currency'],
+                required: false
+              }
+            ]
+          }
         ]
       });
 
@@ -59,18 +76,18 @@ class WebPDFController {
       const pdfsWithMeta = rows.map((pdf) => {
         // Convert file size to readable format
         const sizeInMB = (parseInt(pdf.file_size) / (1024 * 1024)).toFixed(1);
-        
+
         // Determine category from title/description
-        let category = 'notes'; // default
+        let categoryLabel = 'notes'; // default
         const title = pdf.title.toLowerCase();
-        const description = pdf.description.toLowerCase();
-        
-        if (title.includes('book') || description.includes('book')) {
-          category = 'books';
-        } else if (title.includes('paper') || title.includes('question') || description.includes('paper')) {
-          category = 'papers';
-        } else if (title.includes('guide') || description.includes('guide')) {
-          category = 'guides';
+        const desc = (pdf.description || '').toLowerCase();
+
+        if (title.includes('book') || desc.includes('book')) {
+          categoryLabel = 'books';
+        } else if (title.includes('paper') || title.includes('question') || desc.includes('paper')) {
+          categoryLabel = 'papers';
+        } else if (title.includes('guide') || desc.includes('guide')) {
+          categoryLabel = 'guides';
         }
 
         // Parse tags
@@ -82,22 +99,54 @@ class WebPDFController {
         } catch (e) {
           tags = [];
         }
-        
-        // Generate a numeric ID from the UUID for web app compatibility
-        const numericId = parseInt(pdf.id.replace(/-/g, '').substring(0, 8), 16) % 1000000;
+
+        // Resolve price from folder hierarchy
+        let resolvedPrice = parseFloat(pdf.price) || 0;
+        let resolvedCurrency = pdf.currency || 'INR';
+        let resolvedAccessLevel = pdf.access_level || 'free';
+
+        const folder = pdf.category;
+        if (folder) {
+          if (folder.parent_category_id && folder.parentCategory) {
+            // Sub-folder: is_free_override → free, else inherit root price
+            if (folder.is_free_override) {
+              resolvedPrice = 0;
+              resolvedAccessLevel = 'free';
+            } else {
+              resolvedAccessLevel = folder.parentCategory.access_level || 'free';
+              resolvedPrice = parseFloat(folder.parentCategory.price) || 0;
+              resolvedCurrency = folder.parentCategory.currency || 'INR';
+            }
+          } else if (!folder.parent_category_id) {
+            // Root folder
+            resolvedAccessLevel = folder.access_level || 'free';
+            resolvedPrice = parseFloat(folder.price) || 0;
+            resolvedCurrency = folder.currency || 'INR';
+          }
+        }
 
         return {
-          id: numericId,
+          id: pdf.id, // Use real UUID so payment/view routes work
           title: pdf.title,
           description: pdf.description || `PDF document: ${pdf.original_filename}`,
-          category: category,
+          category: categoryLabel,
+          category_id: pdf.category_id,
           fileSize: `${sizeInMB} MB`,
+          file_size: pdf.file_size,
           downloadCount: pdf.download_count || 0,
-          isDownloaded: false, // TODO: Track per-user download status
-          isPremium: pdf.access_level === 'premium',
-          hasAccess: pdf.access_level !== 'premium', // Free access by default, TODO: check user subscriptions
+          download_count: pdf.download_count || 0,
+          view_count: pdf.view_count || 0,
+          isDownloaded: false,
+          isPremium: resolvedAccessLevel === 'premium',
+          hasAccess: resolvedAccessLevel !== 'premium',
+          is_free: resolvedAccessLevel === 'free',
+          access_level: resolvedAccessLevel,
+          price: resolvedPrice,
+          currency: resolvedCurrency,
+          is_featured: pdf.is_featured,
           fileUrl: `/api/pdfs/${pdf.id}/view`,
           uploadDate: pdf.created_at,
+          created_at: pdf.created_at,
           tags: Array.isArray(tags) ? tags : []
         };
       });

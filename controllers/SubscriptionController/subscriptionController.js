@@ -1,5 +1,5 @@
 const ErrorHandler = require('../../utils/default/errorHandler');
-const { Subscription, User, TestSeries, ExamType } = require('../../models');
+const { Subscription, User, TestSeries, ExamType, PdfCategory } = require('../../models');
 const { Op } = require('sequelize');
 const { updateUserSubscriptionStatus } = require('../../utils/subscriptionHelper');
 
@@ -571,43 +571,68 @@ exports.exportSubscriptions = async (req, res, next) => {
 // Admin: Create manual subscription
 exports.createManualSubscription = async (req, res, next) => {
     try {
-        const { 
-            user_id, 
-            test_series_id, 
-            transaction_id, 
+        const {
+            user_id,
+            test_series_id,
+            pdf_folder_id,
+            subscription_type = 'test_series',
+            transaction_id,
             payment_method,
             amount_paid,
             currency = 'INR',
             status = 'completed',
             expiry_date
         } = req.body;
-        
+
+        const isPdfFolder = subscription_type === 'pdf_folder';
+
         // Validate required fields
-        if (!user_id || !test_series_id || !transaction_id || !amount_paid) {
+        if (!user_id || !transaction_id) {
             return next(new ErrorHandler('Missing required fields', 400));
         }
-        
+        if (!isPdfFolder && !test_series_id) {
+            return next(new ErrorHandler('test_series_id is required for test series subscriptions', 400));
+        }
+        if (isPdfFolder && !pdf_folder_id) {
+            return next(new ErrorHandler('pdf_folder_id is required for PDF folder subscriptions', 400));
+        }
+
         // Check if user exists
         const user = await User.findOne({ where: { uuid: user_id } });
         if (!user) {
             return next(new ErrorHandler('User not found', 404));
         }
-        
-        // Check if test series exists
-        const testSeries = await TestSeries.findByPk(test_series_id);
-        if (!testSeries) {
-            return next(new ErrorHandler('Test series not found', 404));
+
+        let metadata = null;
+
+        if (isPdfFolder) {
+            // Validate PDF folder exists
+            const pdfFolder = await PdfCategory.findByPk(pdf_folder_id);
+            if (!pdfFolder) {
+                return next(new ErrorHandler('PDF folder not found', 404));
+            }
+            metadata = {
+                subscription_type: 'pdf_folder',
+                pdf_folder_id: pdfFolder.id,
+                pdf_folder_name: pdfFolder.name
+            };
+        } else {
+            // Check if test series exists
+            const testSeries = await TestSeries.findByPk(test_series_id);
+            if (!testSeries) {
+                return next(new ErrorHandler('Test series not found', 404));
+            }
         }
-        
+
         // Check if transaction ID already exists
         const existingTransaction = await Subscription.findOne({
             where: { transaction_id }
         });
-        
+
         if (existingTransaction) {
             return next(new ErrorHandler('Transaction ID already exists', 400));
         }
-        
+
         // Use provided expiry date or calculate with default duration (365 days)
         const DEFAULT_SUBSCRIPTION_DAYS = 365;
         let finalExpiryDate = null;
@@ -617,23 +642,24 @@ exports.createManualSubscription = async (req, res, next) => {
             finalExpiryDate = new Date();
             finalExpiryDate.setDate(finalExpiryDate.getDate() + DEFAULT_SUBSCRIPTION_DAYS);
         }
-        
+
         // Create subscription
         const subscription = await Subscription.create({
             user_id,
-            test_series_id,
+            test_series_id: isPdfFolder ? null : test_series_id,
             transaction_id,
             payment_method,
-            amount_paid,
+            amount_paid: amount_paid || 0,
             currency,
             status,
             purchase_date: new Date(),
-            expiry_date: finalExpiryDate
+            expiry_date: finalExpiryDate,
+            metadata
         });
-        
+
         // Update user's subscription status
         await updateUserSubscriptionStatus(user_id);
-        
+
         // Fetch the created subscription with details
         const createdSubscription = await Subscription.findByPk(subscription.id, {
             include: [
@@ -642,17 +668,17 @@ exports.createManualSubscription = async (req, res, next) => {
                     as: 'user',
                     attributes: ['uuid', 'username', 'email']
                 },
-                {
+                ...(!isPdfFolder ? [{
                     model: TestSeries,
                     as: 'testSeries',
                     attributes: ['id', 'name', 'price']
-                }
+                }] : [])
             ]
         });
-        
+
         res.status(201).json({
             success: true,
-            message: 'Manual subscription created successfully',
+            message: 'Subscription granted successfully',
             data: createdSubscription
         });
     } catch (err) {
