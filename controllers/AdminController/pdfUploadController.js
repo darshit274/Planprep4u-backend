@@ -56,7 +56,8 @@ exports.getPdfCategories = async (req, res, next) => {
 // Create PDF category (optionally nested via parent_category_id)
 exports.createPdfCategory = async (req, res, next) => {
   try {
-    const { name, description, icon, color, sort_order, parent_category_id, access_level } = req.body;
+    const { name, description, icon, color, sort_order, parent_category_id,
+            access_level, price, currency, is_free_override } = req.body;
 
     if (!name) {
       return next(new ErrorHandler('Category name is required', 400));
@@ -83,6 +84,7 @@ exports.createPdfCategory = async (req, res, next) => {
       slug = `${slug}-${Date.now().toString(36)}`;
     }
 
+    const isRootFolder = !parent_category_id;
     const category = await PdfCategory.create({
       name,
       slug,
@@ -91,7 +93,12 @@ exports.createPdfCategory = async (req, res, next) => {
       color: color || '#3B82F6',
       sort_order: sort_order || 0,
       parent_category_id: parent_category_id || null,
-      access_level: access_level || 'free'
+      // Root folders: set access_level + price
+      access_level: isRootFolder ? (access_level || 'free') : 'free',
+      price: isRootFolder ? (parseFloat(price) || 0.00) : 0.00,
+      currency: isRootFolder ? (currency || 'INR') : 'INR',
+      // Sub-folders: is_free_override (true = free even inside premium root)
+      is_free_override: !isRootFolder ? (is_free_override === true || is_free_override === 'true' ? 1 : 0) : 0
     });
 
     res.status(201).json({
@@ -110,20 +117,29 @@ exports.createPdfCategory = async (req, res, next) => {
 exports.updatePdfCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, icon, color, sort_order, access_level } = req.body;
+    const { name, description, icon, color, sort_order,
+            access_level, price, currency, is_free_override } = req.body;
 
     const category = await PdfCategory.findByPk(id);
     if (!category || !category.is_active) {
       return next(new ErrorHandler('Category not found', 404));
     }
 
+    const isRootFolder = !category.parent_category_id;
     await category.update({
       ...(name && { name }),
       ...(description !== undefined && { description }),
       ...(icon && { icon }),
       ...(color && { color }),
       ...(sort_order !== undefined && { sort_order }),
-      ...(access_level && { access_level })
+      // Root folder: access_level + price
+      ...(isRootFolder && access_level && { access_level }),
+      ...(isRootFolder && price !== undefined && { price: parseFloat(price) || 0.00 }),
+      ...(isRootFolder && currency && { currency }),
+      // Sub-folder: is_free_override
+      ...(!isRootFolder && is_free_override !== undefined && {
+        is_free_override: is_free_override === true || is_free_override === 'true' ? 1 : 0
+      })
     });
 
     res.status(200).json({
@@ -264,12 +280,25 @@ exports.uploadPdf = async (req, res, next) => {
     const filePath = uploadedFile.path;
     const filename = uploadedFile.filename;
 
-    // Inherit access_level from the folder if category_id is set
+    // Resolve access_level from folder hierarchy
+    // Sub-folder: use is_free_override → if true = free, else inherit root's access_level
+    // Root folder: use its own access_level
     let resolvedAccessLevel = access_level || 'free';
     if (validatedCategoryId) {
       const folder = await PdfCategory.findByPk(validatedCategoryId);
-      if (folder && folder.access_level) {
-        resolvedAccessLevel = folder.access_level;
+      if (folder) {
+        if (folder.parent_category_id) {
+          // Sub-folder
+          if (folder.is_free_override) {
+            resolvedAccessLevel = 'free';
+          } else {
+            const rootFolder = await PdfCategory.findByPk(folder.parent_category_id);
+            resolvedAccessLevel = rootFolder?.access_level || 'free';
+          }
+        } else {
+          // Root folder
+          resolvedAccessLevel = folder.access_level || 'free';
+        }
       }
     }
 

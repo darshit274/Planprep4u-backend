@@ -40,7 +40,24 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('free', 'premium', 'restricted'),
       allowNull: false,
       defaultValue: 'free',
-      comment: 'All PDFs in this folder inherit this access level'
+      comment: 'Root folders only: determines access for all PDFs inside'
+    },
+    price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+      comment: 'Root folders only: price when access_level is premium'
+    },
+    currency: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+      defaultValue: 'INR'
+    },
+    is_free_override: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Sub-folders only: marks this sub-folder free even inside a premium root'
     },
     parent_category_id: {
       type: DataTypes.INTEGER,
