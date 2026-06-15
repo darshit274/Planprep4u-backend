@@ -30,6 +30,7 @@ const optionalAuth = async (req, res, next) => {
 
 // Web app compatible PDF routes - ALL REQUIRE AUTHENTICATION FOR SECURITY
 router.get('/', authenticateToken, WebPDFController.getPDFs);
+router.get('/categories', authenticateToken, WebPDFController.getCategories);
 router.get('/auth-test', authenticateToken, (req, res) => {
   res.json({ success: true, message: 'Authentication working', user: req.user, timestamp: new Date().toISOString() });
 });

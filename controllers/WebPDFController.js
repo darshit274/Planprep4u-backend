@@ -2,13 +2,46 @@ const { Op } = require('sequelize');
 const { Pdfs, PdfCategory, ExamType, User } = require('../models');
 
 class WebPDFController {
+  // Get root categories with PDF counts and pricing — web-facing (no adminAuth)
+  static async getCategories(req, res) {
+    try {
+      const { sequelize } = require('../models');
+      const [rows] = await sequelize.query(`
+        SELECT
+          c.id, c.name, c.description, c.icon, c.color,
+          c.access_level, c.price, c.currency, c.sort_order,
+          COUNT(DISTINCT p.id) AS pdf_count
+        FROM pdf_categories c
+        LEFT JOIN pdf_categories sub ON sub.parent_category_id = c.id AND sub.is_active = 1
+        LEFT JOIN pdfs p ON (p.category_id = c.id OR p.category_id = sub.id) AND p.is_active = 1
+        WHERE c.parent_category_id IS NULL AND c.is_active = 1
+        GROUP BY c.id, c.name, c.description, c.icon, c.color, c.access_level, c.price, c.currency, c.sort_order
+        ORDER BY c.sort_order ASC, c.name ASC
+      `);
+
+      res.json({
+        success: true,
+        data: rows.map(r => ({
+          ...r,
+          price: parseFloat(r.price) || 0,
+          pdf_count: parseInt(r.pdf_count) || 0,
+          isPremium: r.access_level === 'premium'
+        }))
+      });
+    } catch (error) {
+      console.error('Get categories error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch categories' });
+    }
+  }
+
   // Get PDFs with web app compatibility
   static async getPDFs(req, res) {
     try {
       const {
         page = 1,
-        limit = 12,
+        limit = 50,
         category,
+        category_id,
         search
       } = req.query;
       const userId = req.user?.id;
@@ -24,22 +57,16 @@ class WebPDFController {
         ];
       }
 
-      // Add category filter (map web app categories to database categories)
-      if (category && category !== 'all') {
-        const categoryMap = {
-          'notes': 'Study Notes',
-          'books': 'Reference Books', 
-          'papers': 'Question Papers',
-          'guides': 'Study Guides'
-        };
-        
-        // If we have category table, we'd filter by it, for now just use description matching
-        if (categoryMap[category]) {
-          where[Op.or] = [
-            ...(where[Op.or] || []),
-            { title: { [Op.like]: `%${categoryMap[category]}%` } },
-            { description: { [Op.like]: `%${categoryMap[category]}%` } }
-          ];
+      // Filter by real category_id (includes PDFs in sub-folders of that root)
+      if (category_id) {
+        const { sequelize } = require('../models');
+        const [subRows] = await sequelize.query(
+          `SELECT id FROM pdf_categories WHERE (id = ? OR parent_category_id = ?) AND is_active = 1`,
+          { replacements: [category_id, category_id] }
+        );
+        const categoryIds = subRows.map(r => r.id);
+        if (categoryIds.length > 0) {
+          where.category_id = { [Op.in]: categoryIds };
         }
       }
 
